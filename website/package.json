@@ -1,5 +1,5 @@
 {
-  "name": "cws-swap",
+  "name": "nft-bridge-website",
   "version": "1.0.0",
   "description": "A website to upload data",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dandelionlabs-io/polkafantasy-interface.git"
+    "url": "git+https://github.com/ahmetson/nft-bridge.git"
   },
   "keywords": [
     "seascape",
@@ -17,15 +17,14 @@
     "web3modal",
     "cws",
     "crowns",
-    "ahmetson",
-    "polkafantasy"
+    "ahmetson"
   ],
   "author": "Medet Ahmetson <admin@blocklords.io>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dandelionlabs-io/polkafantasy-interface/issues"
+    "url": "https://github.com/ahmetson/nft-bridge/issues"
   },
-  "homepage": "https://github.com/dandelionlabs-io/polkafantasy-interface#readme",
+  "homepage": "https://github.com/ahmetson/nft-bridge#readme",
   "devDependencies": {
     "@ethersproject/address": "^5.0.8",
     "@ethersproject/contracts": "^5.0.8",

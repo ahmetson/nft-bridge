@@ -1,13 +1,12 @@
 "use strict";
 
 /**
- * PolkaFantasy interface
+ * Web3Modal
  */
 
  // Unpkg imports
 const Web3Modal = window.Web3Modal.default;
 const WalletConnectProvider = window.WalletConnectProvider.default;
-const Fortmatic = window.Fortmatic;
 const evmChains = window.evmChains;
 
 
@@ -52,14 +51,6 @@ function init() {
         // Mikko's test key - don't copy as your mileage may vary
         infuraId: "a07ddfebd33a4161b915c09002291536",
       }
-    },
-
-    fortmatic: {
-      package: Fortmatic,
-      options: {
-        // Mikko's TESTNET api key
-        key: "pk_test_391E26A3B43A3350"
-      }
     }
   };
 
@@ -99,37 +90,17 @@ async function fetchAccountData() {
   document.querySelector("#eth-balance").textContent = humanFriendlyBalance;
 
   // Display fully loaded UI for wallet data
-  document.querySelector("#connected").style.display = "flex";
-  document.querySelector("#disconnected").style.display = "none";
-
   document.querySelector("#btn-connect").style.display = "none";
   document.querySelector("#btn-disconnect").style.display = "block";
 
   // Showing pool also loads the tokens
-  await showPoolInfo();
-  await showPolkaToken();
+  await initContracts();
 }
 
 window.printErrorMessage = function(message) {
   document.querySelector("#error-message").textContent = message;
   window.errorModal.show();
 }
-
-window.showPolkaToken = async function() {
-  try {
-    window.polka = await getContract("polka");
-  } catch (e) {
-    printErrorMessage(e);
-    return;
-  }
-
-  const balance = await window.polka.methods.balanceOf(window.selectedAccount).call({from: window.selectedAccount});
-  const ethBalance = web3.utils.fromWei(balance, "ether");
-  const humanFriendlyBalance = parseFloat(ethBalance).toFixed(FIXED_DIGITS);
-
-  document.querySelector("#xp-balance").textContent = humanFriendlyBalance;
-}
-
 
 /**
  * Fetch account data for UI when
@@ -139,12 +110,6 @@ window.showPolkaToken = async function() {
  */
  //***this function may be needed by other providers
 async function refreshAccountData() {
-
-  // If any current data is displayed when
-  // the user is switching acounts in the wallet
-  // immediate hide this data
-  document.querySelector("#connected").style.display = "none";
-
   // Disable button while UI is loading.
   // fetchAccountData() will take a while as it communicates
   // with Ethereum node via JSON-RPC and loads chain data

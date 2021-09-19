@@ -1,39 +1,140 @@
 <html>
   <head>
-    <!-- <base href="https://dandelionlabs-io.github.io/polkafantasy-interface/" > -->
-    <link rel="shortcut icon" href="https://polkafantasy.com/favicon.ico" />
-    <title>PolkaFantasy manager</title>
+    <title>Trustless NFT Bridge</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Get some bootstrap default styles -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <link rel="stylesheet" href="css/polka.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/nft-bridge.css" crossorigin="anonymous">
   </head>
   <body>
+          <!-- Top Menu -->
+          <div class="row bg-primary" id="nav">
+            <div class="offset-md-1 col-md-7">
+              <h4 class="text-light ml-1">
+                Trustless NFT Bridge
+              </h4>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-danger float-end" id="btn-connect">
+                Connect wallet
+              </button>
+              <button class="btn btn-warning float-end" id="btn-disconnect" style="display: none;">
+                Disconnect wallet
+                <li class="list-group-item d-flex justify-content-between align-items-center list-group-item-primary">
+                  Account
+                  <strong><span class="badge bg-primary rounded-pill" id="selected-account"></span></strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  ETH balance:
+                  <span class="badge bg-primary rounded-pill" id="eth-balance">0</span>
+                </li>
+                <div class="col-7" >
+                  Blockchain: <strong><span id="network-name"></span></strong>
+                </div>
+              </button>
+            </div>
+            <div class="col-md-1"></div>
+          </div>
     <!-- Construct a Bootstrap layout -->
     <div class="container">
-      <div class="row">
-        <div class="col-md-12 polka-header">
-          <img src="images/logo.svg" alt="PolkaFantasy - Japanese themed Marketplace and game" />
-
-          <h1 class="text-center">Choose a role</h1>
+      <!-- HTTPS required ---->
+      <div class="row mt-4" id="alert-error-https" style="display: none">
+        <div class="col-md-12">
+          <div class="alert alert-danger">
+            To secure wallet connection, please run website on HTTPS connection.
+          </div>
         </div>
       </div>
-      <nav>
-          <ul class="nav flex-column alert-info well text-center" role="alert">
-            <li><a class="nav-link active" href="manager.html" title="If you are managing contract">Manager</a>
-            <li><a class="nav-link"  href="investor.html" title="If you an investor">Investor</a>
+
+      <!-- Investment info -->
+      <div class="row mt-5">
+        <div class="col-md-12">
+          <h1 class="h2"><span id="pool-info-name"></span> SCAPE NFT</h1>
+          <p class="text-muted">Bridge your SCAPE NFT from <a href="https://seascape.network" target="_blank">Seascape.network</a>.</p>
+        </div>
+      </div>
+      <div class="row mt-2 form-group">
+        <div class="col-md-12 input-group">
+          <input type="text" class="form-control"  placeholder="Token ID" aria-label="Search for Token ID" aria-describedby="btn-fetch" id="input-fetch">
+          <button class="btn btn-outline-primary" type="button" id="btn-fetch">Fetch</button>
+        </div>
+      </div>
+
+      <div class="row mt-5">
+        <div class="col-md-6">
+          <h3 class="bg-info text-center" id="nft-status">
+            Wrapped Bridged Token
+          </h3>
+          <img src="images/placeholder.svg" id="nft-src" class="card-img-top" alt="...">
+        </div>
+        <div class="col-md-6">
+          <ul class="list-group">
+            <li class="list-group-item">ID: <strong id="nft-id">0</strong></li>
+            <li class="list-group-item">Owner: <strong id="nft-owner">0xC6EF8A96F20d50E347eD9a1C84142D02b1EFedc0</strong></li>
+            <li class="list-group-item">Name: <strong id="nft-name">Scapes Token</strong></li>
           </ul>
-        </nav>
+        </div>
+      </div>
+
+      <div class="row mt-5 mb-5">
+        <p class="col-md-12 text-center" id="tx-status">
+          Already transferred 
+        </p>
+        <div class="col-md-6 text-center mt-2 source-btns">
+          <button type="button" class="btn btn-success" id="btn-approve">Approve NFT</button>
+          <button type="button" class="btn btn-success" id="btn-wrap" style="display: none;">Wrap</button>
+        </div>
+        <div class="col-md-6 text-center mt-2 target-btns">
+          <button type="button" class="btn btn-success" id="btn-block-confirm" disabled style="display: none;">
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+            Block Confirmation: <i id="confirm-status">0/12</i>
+          </button>
+          <button type="button" class="btn btn-success" id="btn-change-network" style="display: none;" disabled>Change Network</button>
+          <button type="button" class="btn btn-success" id="btn-mint" disabled>Mint</button>
+        </div>
+      </div>
     </div>
 
-    <div class="footer fixed-bottom text-center bg-light text-muted">
-      <p>Made by <a href="https://dandelionlabs.io/" alt="Dandelion Labs is a blockchain product and research agency" target="_blank">Dandelion Labs</a></p>
+    <!-- Modal about generic errors -->
+    <div class="modal fade " id="error-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog  modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content alert alert-warning" role="alert">
+          <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Error</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">  
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-12">
+                  <p id="error-message"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction status -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+      <div id="toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+          <strong class="me-auto" id="toast-title"></strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+          ...
+        </div>
+      </div>
     </div>
 
     <!--
-
       Use unpkg CDN to load all NPM packages to vanilla Javascript - read more at http://unpkg.com
 
       On your deployment, you properly either want to use a preprocessing tool like webpack
@@ -42,26 +143,22 @@
       TODO: Pin down all versions.
 
     -->
-
-    <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 
     <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
     <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/@walletconnect/web3-provider@1.3.6/dist/umd/index.min.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/web3@1.3.0/dist/web3.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/@metamask/detect-provider/dist/detect-provider.min.js"></script>
 
-
-    <!-- uniswap-sdk to test swaping -->
-    <script type="text/javascript" src="uniswap-sdk.bundle.js"></script>
-    <script type="text/javascript" src="router-abi.js"></script>
-    <script type="text/javascript" src="erc20-abi.js"></script>
-
-    <!-- This is our example code -->
+    <!-- This is our code -->
+    <script type="text/javascript" src="abi-js/Wrapped.js"></script>
+    <script type="text/javascript" src="abi-js/Bridged.js"></script>
+    <script type="text/javascript" src="abi-js/Scape.js"></script>
+    <script type="text/javascript" src="js/nft-bridge.js"></script>
+    <script type="text/javascript" src="js/logic.js"></script>
     <script type="module" src="wallet-connect.js"></script>
+
   </body>
 </html>

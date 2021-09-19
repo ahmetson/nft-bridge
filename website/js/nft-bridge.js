@@ -20,13 +20,13 @@ let blockchainConfig = {
             "abi": "scapeAbi"
         },
         "wrapped": {
-            "address": "0x95ad755165bC812aAbAb248693568f2f7eB80E7D",
+            "address": "0x48fAD8615804e09fB8054F649A99E37867461e85",
             "abi": "wrappedAbi"
         }
     },
     "97": {
         "bridged": {
-            "address": "0x947567B124269dab5388B8F94eF7c988a323E0e3",
+            "address": "0x8af08773023Cf9D82A769676e234Dc45D2F8Fd52",
             "abi": "bridgedAbi"
         }
     }

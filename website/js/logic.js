@@ -383,6 +383,12 @@ async function onWrap() {
 
           document.querySelector("#tx-status").textContent = "Wait for block confirmation! Please don't refresh the page";
 
+          try {
+            wrappedOwner = await wrapped.methods.ownerOf(tokenId).call();
+          } catch (error) {
+            console.warn(`Token ${tokenId} wasn't bridged yet`);
+          }
+
           // Show block confirmation
           waitBlockConfirmation(receipt.blockNumber);
         })

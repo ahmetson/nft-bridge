@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract WrappedNft is ERC721URIStorage {
+contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
     address public source;
+
+    event NftReceived(address operator, address from, uint256 tokenId, bytes data);
 
     /**
      * @param _source is the original NFT that is wrapped to bridge
@@ -17,18 +22,38 @@ contract WrappedNft is ERC721URIStorage {
         source = _source;
     }
 
-    function mint(uint256 id, address player, string memory tokenURI)
+    function mint(uint256 id)
         public
         returns (uint256)
     {
         require(id > 0, "INVALID_TOKEN_ID");
 
-        IERC721 nft = IERC721(source);
-        require(nft.ownerOf(id) == player, "NOT_OWNER");
-        require(ownerOf(id) == address(0), "MINTED");
+        IERC721Metadata nft = IERC721Metadata(source);
+        require(nft.ownerOf(id) == msg.sender, "NOT_OWNER");
 
-        _mint(player, id);
+        string memory tokenURI = nft.tokenURI(id);
+        nft.safeTransferFrom(msg.sender, address(this), id, "");
+
+        _mint(msg.sender, id);
         _setTokenURI(id, tokenURI);
+
+        return id;
+    }
+
+    /// @dev For development only.
+    function withdraw(uint256 id) 
+        public
+        returns (uint256)
+    {
+        require(id > 0, "INVALID_TOKEN_ID");
+        require(ownerOf(id) == msg.sender, "NOT_OWNER");
+
+        IERC721Metadata nft = IERC721Metadata(source);
+        require(nft.ownerOf(id) == address(this), "NOT_WRAPPED");
+
+        nft.safeTransferFrom(address(this), msg.sender, id, "");
+
+        _burn(id);
 
         return id;
     }
@@ -60,5 +85,27 @@ contract WrappedNft is ERC721URIStorage {
         uint256 _tokenId
     ) public virtual override {
         revert();
+    }
+
+    /// @dev encrypt token data
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes memory data
+    )
+        public
+        override
+        returns (bytes4)
+    {
+        //only receive the _nft staff
+        if (address(this) != operator) {
+            //invalid from nft
+            return 0;
+        }
+
+        //success
+        emit NftReceived(operator, from, tokenId, data);
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 }

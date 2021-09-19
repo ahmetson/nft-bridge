@@ -27,6 +27,10 @@ module.exports = {
     rinkeby: {
       url: process.env.REMOTE_HTTP,
       accounts: [process.env.DEPLOYER_KEY]
+    },
+    bsctest: {
+      url: process.env.BSC_REMOTE_HTTP,
+      accounts: [process.env.BSC_DEPLOYER_KEY]
     }
   },
   etherscan: {

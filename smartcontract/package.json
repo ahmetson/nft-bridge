@@ -1,25 +1,26 @@
 {
-  "name": "polkafantasy-linear-vesting",
+  "name": "nft-bridge-smartcontract",
   "version": "0.0.1",
-  "description": "PolkaFantasy Linear Vesting Smartcontracts",
+  "description": "Trustless Nft Bridge between EVM Compatible blockchains",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dandelionlabs-io/polkafantasy-linear-vesting.git"
+    "url": "git+https://github.com/ahmetson/nft-bridge.git"
   },
   "keywords": [
-    "polkafantasy",
-    "dandelionlabs"
+    "nft-bridge",
+    "ethereum",
+    "ahmetson"
   ],
   "author": "ahmetson",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dandelionlabs-io/polkafantasy-linear-vesting/issues"
+    "url": "https://github.com/ahmetson/nft-bridge/issues"
   },
-  "homepage": "https://github.com/dandelionlabs-io/polkafantasy-linear-vesting#readme",
+  "homepage": "https://github.com/ahmetson/nft-bridge#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.5",

@@ -1,0 +1,67 @@
+<html>
+  <head>
+    <!-- <base href="https://dandelionlabs-io.github.io/polkafantasy-interface/" > -->
+    <link rel="shortcut icon" href="https://polkafantasy.com/favicon.ico" />
+    <title>PolkaFantasy manager</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Get some bootstrap default styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/polka.css" crossorigin="anonymous">
+  </head>
+  <body>
+    <!-- Construct a Bootstrap layout -->
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12 polka-header">
+          <img src="images/logo.svg" alt="PolkaFantasy - Japanese themed Marketplace and game" />
+
+          <h1 class="text-center">Choose a role</h1>
+        </div>
+      </div>
+      <nav>
+          <ul class="nav flex-column alert-info well text-center" role="alert">
+            <li><a class="nav-link active" href="manager.html" title="If you are managing contract">Manager</a>
+            <li><a class="nav-link"  href="investor.html" title="If you an investor">Investor</a>
+          </ul>
+        </nav>
+    </div>
+
+    <div class="footer fixed-bottom text-center bg-light text-muted">
+      <p>Made by <a href="https://dandelionlabs.io/" alt="Dandelion Labs is a blockchain product and research agency" target="_blank">Dandelion Labs</a></p>
+    </div>
+
+    <!--
+
+      Use unpkg CDN to load all NPM packages to vanilla Javascript - read more at http://unpkg.com
+
+      On your deployment, you properly either want to use a preprocessing tool like webpack
+      to include these files, or extract NPM archives and manually host the files inside.
+
+      TODO: Pin down all versions.
+
+    -->
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+    <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@walletconnect/web3-provider@1.3.6/dist/umd/index.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/web3@1.3.0/dist/web3.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@metamask/detect-provider/dist/detect-provider.min.js"></script>
+
+
+    <!-- uniswap-sdk to test swaping -->
+    <script type="text/javascript" src="uniswap-sdk.bundle.js"></script>
+    <script type="text/javascript" src="router-abi.js"></script>
+    <script type="text/javascript" src="erc20-abi.js"></script>
+
+    <!-- This is our example code -->
+    <script type="module" src="wallet-connect.js"></script>
+  </body>
+</html>

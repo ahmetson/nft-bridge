@@ -1,0 +1,38 @@
+{
+  "name": "cws-swap",
+  "version": "1.0.0",
+  "description": "A website to upload data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dandelionlabs-io/polkafantasy-interface.git"
+  },
+  "keywords": [
+    "seascape",
+    "blocklords",
+    "web3modal",
+    "cws",
+    "crowns",
+    "ahmetson",
+    "polkafantasy"
+  ],
+  "author": "Medet Ahmetson <admin@blocklords.io>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dandelionlabs-io/polkafantasy-interface/issues"
+  },
+  "homepage": "https://github.com/dandelionlabs-io/polkafantasy-interface#readme",
+  "devDependencies": {
+    "@ethersproject/address": "^5.0.8",
+    "@ethersproject/contracts": "^5.0.8",
+    "@ethersproject/networks": "^5.0.6",
+    "@ethersproject/providers": "^5.0.17",
+    "@ethersproject/solidity": "^5.0.7",
+    "express": "^4.17.1",
+    "https-localhost": "^4.6.3"
+  }
+}

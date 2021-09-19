@@ -1,0 +1,28 @@
+.polka-header img {
+    width: 250px;
+    height: 68px;
+    margin: auto;
+    display: block;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.polka-header h1 {
+    font-size: 1.5em;
+    margin-top: 4em;
+}
+
+#btn-connect, #btn-disconnect {
+    margin-top: 10px;
+}
+#nav h4 {
+    margin-top: 15px;
+}
+
+#nav {
+    padding: 15px 0px;
+}
+
+#btn-change, #btn-transfer {
+    margin-top: 15px;
+}

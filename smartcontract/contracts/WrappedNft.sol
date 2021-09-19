@@ -12,6 +12,9 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
 
     address public source;
 
+    /// @notice The latest Block Number when NFT was minted.
+    mapping(uint256 => uint256) public blockNumbers;
+
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
 
     /**
@@ -27,6 +30,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         returns (uint256)
     {
         require(id > 0, "INVALID_TOKEN_ID");
+        require(blockNumbers[id] == 0, "ALREADY_MINTED");
 
         IERC721Metadata nft = IERC721Metadata(source);
         require(nft.ownerOf(id) == msg.sender, "NOT_OWNER");
@@ -36,6 +40,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
 
         _mint(msg.sender, id);
         _setTokenURI(id, tokenURI);
+        blockNumbers[id] = block.number;
 
         return id;
     }
@@ -46,6 +51,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         returns (uint256)
     {
         require(id > 0, "INVALID_TOKEN_ID");
+        require(blockNumbers[id] > 0, "NOT_MINTED");
         require(ownerOf(id) == msg.sender, "NOT_OWNER");
 
         IERC721Metadata nft = IERC721Metadata(source);
@@ -54,6 +60,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         nft.safeTransferFrom(address(this), msg.sender, id, "");
 
         _burn(id);
+
+        delete blockNumbers[id];
 
         return id;
     }

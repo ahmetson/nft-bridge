@@ -1,0 +1,36 @@
+{
+  "name": "polkafantasy-linear-vesting",
+  "version": "0.0.1",
+  "description": "PolkaFantasy Linear Vesting Smartcontracts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dandelionlabs-io/polkafantasy-linear-vesting.git"
+  },
+  "keywords": [
+    "polkafantasy",
+    "dandelionlabs"
+  ],
+  "author": "ahmetson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dandelionlabs-io/polkafantasy-linear-vesting/issues"
+  },
+  "homepage": "https://github.com/dandelionlabs-io/polkafantasy-linear-vesting#readme",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.5",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.5",
+    "hardhat": "^2.6.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.0",
+    "dotenv": "^10.0.0"
+  }
+}

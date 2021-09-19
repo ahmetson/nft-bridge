@@ -1,0 +1,49 @@
+version: "3.8"
+
+services: 
+  #################################################
+  #
+  # ORACLE Services
+  #
+  #################################################
+  postgres:
+    image: postgres:13.1-alpine
+    ports:
+      - 5432:5432
+    env_file: 
+      - oracle/postgres.env
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+
+  chainlink:
+    build: ./oracle
+    env_file:
+      - ./oracle/chainlink.env
+    command: local node -p /chainlink/.password -a /chainlink/.api
+    container_name: "chainlink"
+    restart: on-failure
+    ports: 
+      - 6688:6688
+    links:
+      - postgres
+      - target-gas-price
+    depends_on: 
+      - postgres
+    volumes:
+      - type: bind
+        source: ./oracle/chainlink_data
+        target: /chainlink
+  target-gas-price:
+    build: ./oracle/adapters/target-gas-price/.
+    env_file:
+      - ./oracle/adapters/target-gas-price/.env
+    container_name: "target-gas-price"
+    volumes:
+      - type: bind
+        source: ./oracle/adapters/target-gas-price
+        target: /home/node/app
+      - /home/node/app/node_modules
+    ports:
+      - 8080:8080
+volumes: 
+  db-data:

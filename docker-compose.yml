@@ -3,6 +3,29 @@ version: "3.8"
 services: 
   #################################################
   #
+  # Website services
+  #
+  #################################################
+  website:
+    build:
+      context: ./website
+    container_name: "website"
+    volumes:
+      - type: bind
+        source: ./website
+        target: /home/node/app
+      - /home/node/app/node_modules
+    networks:
+      - net
+    # entrypoint: sh
+    # command: '-c "sleep 1d"'
+    command: ["npm", "run", "start"]
+    env_file:
+      - ./website/.env
+    ports: 
+      - 443:443
+  #################################################
+  #
   # ORACLE Services
   #
   #################################################
@@ -14,6 +37,8 @@ services:
       - oracle/postgres.env
     volumes: 
       - db-data:/var/lib/postgresql/data
+    networks:
+      - net
 
   chainlink:
     build: ./oracle
@@ -33,6 +58,8 @@ services:
       - type: bind
         source: ./oracle/chainlink_data
         target: /chainlink
+    networks:
+      - net
   target-gas-price:
     build: ./oracle/adapters/target-gas-price/.
     env_file:
@@ -45,5 +72,9 @@ services:
       - /home/node/app/node_modules
     ports:
       - 8080:8080
+    networks:
+      - net
 volumes: 
   db-data:
+networks:
+  net:

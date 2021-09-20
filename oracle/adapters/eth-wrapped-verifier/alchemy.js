@@ -138,13 +138,14 @@ let verifyWrappedNFT = async function(input, callback) {
     return;
   }
 
+  /// Concatinating. If Token URI is too big, shorten it.
+  let result = web3.utils.bytesToHex([params.quality]) + web3.utils.bytesToHex([params.generation]).substr(2) + tokenURI;
+
   /// Returning data
   let returnData = {
     jobRunID: input.id,
     data: {
-      success: true,
-      tokenURI: tokenURI,
-      params: params
+      result: result        // Fast data result is returned in `result` property according to ChainLink.
     }
   };
 

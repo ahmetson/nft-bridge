@@ -1,0 +1,26 @@
+#btn-connect, #btn-disconnect {
+    margin-top: 10px;
+}
+#nav h4 {
+    margin-top: 15px;
+}
+
+#nav {
+    padding: 15px 0px;
+}
+
+#btn-change, #btn-transfer {
+    margin-top: 15px;
+}
+
+/******************************************************************************
+ *
+ * NFT Bridge
+ *
+ ******************************************************************************/
+#nft-status {
+    margin: 0;
+    font-weight: 100;
+    font-size: 1.2em;
+    padding: 5px;
+}

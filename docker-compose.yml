@@ -3,6 +3,50 @@ version: "3.8"
 services: 
   #################################################
   #
+  # Website services
+  #
+  #################################################
+  website:
+    build:
+      context: ./website
+    container_name: "website"
+    volumes:
+      - type: bind
+        source: ./website
+        target: /home/node/app
+      - /home/node/app/node_modules
+    networks:
+      - net
+    # entrypoint: sh
+    # command: '-c "sleep 1d"'
+    command: ["npm", "run", "start"]
+    env_file:
+      - ./website/.env
+    ports: 
+      - 443:443
+  #################################################
+  #
+  # Smartcontract
+  #
+  #################################################
+  smartcontract:
+    build:
+      context: ./smartcontract
+    container_name: "smartcontract"
+    volumes:
+      - type: bind
+        source: ./smartcontract
+        target: /home/node/app
+      - /home/node/app/node_modules
+    networks:
+      - net
+    entrypoint: sh
+    command: '-c "sleep 1d"'
+    env_file:
+      - ./Smartcontract/.env
+
+  #################################################
+  #
   # ORACLE Services
   #
   #################################################
@@ -14,6 +58,8 @@ services:
       - oracle/postgres.env
     volumes: 
       - db-data:/var/lib/postgresql/data
+    networks:
+      - net
 
   chainlink:
     build: ./oracle
@@ -33,6 +79,8 @@ services:
       - type: bind
         source: ./oracle/chainlink_data
         target: /chainlink
+    networks:
+      - net
   target-gas-price:
     build: ./oracle/adapters/target-gas-price/.
     env_file:
@@ -44,6 +92,27 @@ services:
         target: /home/node/app
       - /home/node/app/node_modules
     ports:
+      - 8081:8080
+    networks:
+      - net
+
+  eth-wrapped-verifier:
+    build: ./oracle/adapters/eth-wrapped-verifier/.
+    env_file:
+      - ./oracle/adapters/eth-wrapped-verifier/.env
+    container_name: "eth-wrapped-verifier"
+    volumes:
+      - type: bind
+        source: ./oracle/adapters/eth-wrapped-verifier
+        target: /home/node/app
+      - /home/node/app/node_modules
+    ports:
       - 8080:8080
+    networks:
+      - net
+    # entrypoint: sh
+    # command: '-c "sleep 1d"'
 volumes: 
   db-data:
+networks:
+  net:

@@ -29,13 +29,13 @@ services:
   # Smartcontract
   #
   #################################################
-  smartcontract:
+  smartcontracts:
     build:
-      context: ./smartcontract
-    container_name: "smartcontract"
+      context: ./smartcontracts
+    container_name: "smartcontracts"
     volumes:
       - type: bind
-        source: ./smartcontract
+        source: ./smartcontracts
         target: /home/node/app
       - /home/node/app/node_modules
     networks:
@@ -43,7 +43,7 @@ services:
     entrypoint: sh
     command: '-c "sleep 1d"'
     env_file:
-      - ./Smartcontract/.env
+      - ./smartcontracts/.env
 
   #################################################
   #

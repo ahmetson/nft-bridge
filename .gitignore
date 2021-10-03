@@ -1,1 +1,3 @@
-﻿*.env
+﻿.env
+oracle/chainlink.env
+oracle/postgres.env

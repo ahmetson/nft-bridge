@@ -1,20 +1,29 @@
-# chainlink-docker-compose
-Simple docker-compose-based project to get quickly up and running a Chainlink node. This is intended mainly for development use, or at least should be enough to get you started with a working-as-is repository. However, it assumes basic Docker skills.
+# NFT Bridge
+A Trustless, decentralized NFT bridge between Ethereum and Smartchain.   
+The trustless, decentralized nature of this bridge achieved through direct Smartcontract interaction on two different blockchains through Decentralized Oracles provided by [Chainlink](https://chain.link).
+
+> This Documentation assumes that you are familiar with Professional Development tools, as it doesn't describe what they do or how to install them.
 
 # How to use
 
-1. Clone repository
+1. Install [git](https://git-scm.com/), [Docker](https://www.docker.com/get-started), and [Docker Compose](https://docs.docker.com/compose/install/).
+
+2. Clone repository
 ```
-git clone https://github.com/koslib/chainlink-docker-compose
+git clone https://github.com/ahmetson/nft-bridge
 ```
 
-1. Review `chainlink.env` and adapt accordingly. The committed environment file uses Rinkeby testnet. Also, the example uses Linkpool's public Ethereum service node.
-
-2. Build and run with docker-compose
+3. Create `website/.env` based on `website/.example.env`.
+4. Create `smartcontract/.env` based on `smartcontract/.example.env`. The committed environment file uses Rinkeby testnet. Also, the example uses Alchemy's public Ethereum service node.
+5. Create `oracle/postgres.env` based on `oracle/.example.postgres.env`.
+6. Create `oracle/chainlink.env` based on `oracle/.example.chainlink.env`. The comitted environment file uses Rinkeby testnet. Adapt it accordingly.
+7. Create `oracle\adapters\target-gas-price\.env` based on `oracle\adapters\target-gas-price\.example.env`.
+8. Create `oracle\adapters\eth-wrapped-verifier\.env` based on `oracle\adapters\eth-wrapped-verifier\.example.env`.
+9. Build and run with docker-compose
 
 * Build with default values, which you can adapt if needed inside the `Dockerfile`
 ```
-docker-compose up --build
+docker-compose up --d
 ```
 
 * First build with your own build args and then run:

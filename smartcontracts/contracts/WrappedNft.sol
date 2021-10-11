@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  * @notice WrappedNft is an NFT on the Source Blockchain, which locks the original NFT, and disables transferring it.
  * When an NFT is wrapped, the Listening oracles would mint the copy on target Blockchain.
  *
- * @todo Unwrapping Wrapped NFTs is not possible in this version.
+ * todo Unwrapping Wrapped NFTs is not possible in this version.
  */
 contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     using Counters for Counters.Counter;

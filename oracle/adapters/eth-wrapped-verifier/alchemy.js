@@ -122,11 +122,11 @@ let verifyWrappedNFT = async function(input, callback) {
     tokenURI = await sourceContract.methods.tokenURI(tokenID).call();
 
     // For other NFTs the parameters might be fetched in a different way
-    let scapeParams = await sourceContract.methods.paramsOf(tokenID).call();
-    params = {
-      quality: parseInt(scapeParams.quality),
-      generation: parseInt(scapeParams.generation)
-    };
+    // let scapeParams = await sourceContract.methods.paramsOf(tokenID).call();
+    // params = {
+      // quality: parseInt(scapeParams.quality),
+      // generation: parseInt(scapeParams.generation)
+    // };
 
   } catch (error) {
     let errorData = {
@@ -139,7 +139,8 @@ let verifyWrappedNFT = async function(input, callback) {
   }
 
   /// Concatinating. If Token URI is too big, shorten it.
-  let result = web3.utils.bytesToHex([params.quality]) + web3.utils.bytesToHex([params.generation]).substr(2) + tokenURI;
+  // let result = web3.utils.bytesToHex([params.quality]) + web3.utils.bytesToHex([params.generation]).substr(2) + tokenURI;
+  let result = tokenURI;
 
   /// Returning data
   let returnData = {

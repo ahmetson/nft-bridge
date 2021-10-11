@@ -28,6 +28,10 @@ module.exports = {
       url: process.env.REMOTE_HTTP,
       accounts: [process.env.DEPLOYER_KEY]
     },
+    kovan: {
+      url: process.env.KOVAN_REMOTE_HTTP,
+      accounts: [process.env.KOVAN_DEPLOYER_KEY]
+    },
     bsctest: {
       url: process.env.BSC_REMOTE_HTTP,
       accounts: [process.env.BSC_DEPLOYER_KEY]

@@ -1,6 +1,23 @@
 version: "3.8"
 
 services: 
+  letters:
+    build:
+      context: ./letters
+    container_name: "letters"
+    volumes:
+      - type: bind
+        source: ./letters
+        target: /home/node/app
+      - /home/node/app/node_modules
+    networks:
+      - net
+    # entrypoint: sh
+    # command: '-c "sleep 1d"'
+    command: ["npm", "run", "start"]
+    ports: 
+      - 3032:3032
+
   #################################################
   #
   # Website services
@@ -15,6 +32,7 @@ services:
         source: ./website
         target: /home/node/app
       - /home/node/app/node_modules
+      - /root/.config/https-localhost.
     networks:
       - net
     # entrypoint: sh
@@ -24,6 +42,7 @@ services:
       - ./website/.env
     ports: 
       - 443:443
+      - 3000:3000
   #################################################
   #
   # Smartcontract

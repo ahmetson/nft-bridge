@@ -1,0 +1,15 @@
+{
+    "description": "These letters are simple like a poor guy and Naive like a Nomad from Medet, who is famous like an unknown soldier.", 
+    "external_url": "https://turkmenson.com/letters", 
+    "image": "images/3.png", 
+    "name": "Letter 'E'",
+    "attributes": [ {
+            "trait_type": "Order", 
+            "value": 3
+        }, 
+        {
+            "trait_type": "Example", 
+            "value": "Emotion"
+        }
+    ]
+}

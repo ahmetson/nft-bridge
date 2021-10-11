@@ -9,24 +9,24 @@
  
 let FIXED_DIGITS = 6;
 
-let CONFIRMATION = 12;
-let SOURCE_NETWORK_ID = 4;
-let TARGET_NETWORK_ID = 97;
+let CONFIRMATION = 2;
+let SOURCE_NETWORK_ID = 42;
+let TARGET_NETWORK_ID = 4;
 
 let blockchainConfig = {
-    "4": {
+    "42": {
         "source": {
-            "address": "0x7115ABcCa5f0702E177f172C1c14b3F686d6A63a",
+            "address": "0x536602da5f4Bee6f359947c2AF22673A5EbC181F",
             "abi": "scapeAbi"
         },
         "wrapped": {
-            "address": "0x48fAD8615804e09fB8054F649A99E37867461e85",
+            "address": "0x186E521514542af46F404Ec356d556B26229dFb6",
             "abi": "wrappedAbi"
         }
     },
-    "97": {
+    "4": {
         "bridged": {
-            "address": "0x8af08773023Cf9D82A769676e234Dc45D2F8Fd52",
+            "address": "0x22a272A851b81D4B0c404Cd31D49d64166546ab8",
             "abi": "bridgedAbi"
         }
     }

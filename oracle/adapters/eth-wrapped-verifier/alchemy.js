@@ -6,7 +6,7 @@ const ScapeNFT              = require('./abi/source');
 const { parse } = require("ipaddr.js");
 
 // Ethereum Node endpoints
-const TESTNET_URL = "wss://eth-rinkeby.alchemyapi.io/v2/"
+const TESTNET_URL = "wss://eth-kovan.alchemyapi.io/v2/"
 // const MAINNET_URL = "wss://eth-mainnet.ws.alchemyapi.io/v2/";
 
 const web3 = createAlchemyWeb3(

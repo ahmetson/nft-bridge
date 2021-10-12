@@ -92,25 +92,41 @@ contract BridgedNft is ERC721URIStorage, ChainlinkClient {
     {
         require(id > 0, "INVALID_TOKEN_ID");
         require(params[id] == 0, "ALREADY_MINTED");
+        require(!_exists(id), "ALREADY_MINTED");
 
         verify(msg.sender, id);
     }
 
     function verify(address minter, uint256 tokenID) internal {
-    	Chainlink.Request memory req = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
-    	req.add("tokenID", uint2str(tokenID));
-    	req.add("minter", toStr(abi.encodePacked(minter)));
-    	req.add("wrapped", toStr(abi.encodePacked(wrapped)));
-    	bytes32 requestID = sendChainlinkRequestTo(oracle, req, fee);
+        Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+        
+        // Set the URL to perform the GET request on
+        string memory url = "http://145.14.157.48:8080?minter="; 
+        string memory queryPath = append(url, toStr(minter), "&wrapped=", toStr(wrapped), "&tokenID=", toStr(tokenID));
+        request.add("get", queryPath);
+        
+        // Set the path to find the desired data in the API response, where the response format is:
+        // {"tokenID": 1 }
+        request.add("path", "tokenID");
+        
+        // Sends the request
+        bytes32 requestID = sendChainlinkRequestTo(oracle, request, fee);
         confirms[requestID] = Nft(tokenID, minter);
+    }
+
+    function append(string memory a, string memory b, string memory c, string memory d, string memory e, string memory f) internal pure returns (string memory) {
+        return string(abi.encodePacked(a, b, c, d, e, f));
     }
     
     //callback function
-    function fulfill(bytes32 _requestId, bytes32 _result) public recordChainlinkFulfillment(_requestId) {
+    // function fulfill(bytes32 _requestId, bytes32 _result) public recordChainlinkFulfillment(_requestId) {
+    function fulfill(bytes32 _requestId, uint256 _result) public recordChainlinkFulfillment(_requestId) {
     	Nft storage nft = confirms[_requestId];
+        require(nft.id > 0, "ALREADY_MINTED");
+        require(!_exists(nft.id), "ALREADY_EXISTS");
 
         // need to decode bytes32 to nft parameters using abi.decodePacked
-        params[nft.id] = _result;
+        // params[nft.id] = _result;
         _mint(nft.minter, nft.id);
 
         delete confirms[_requestId];

@@ -18,8 +18,8 @@ contract BridgedNft is ERC721URIStorage, ChainlinkClient {
 
     // TODO: make it as non-nft contract that could call mint function of nft factory.
     // TODO: test the `params` mapping
-    bytes32 public jobId =  "a6f100a5bae54ac9aab5c3311d786129";
-    address public oracle =  0x52e2C651E41D608d6991a66d709EDe84B93580ec;
+    bytes32 public jobId =  "e7df1bdab0b448d2afcdceb15b890345";
+    address public oracle =  0x9C18b429c89395Ff036b84bbD95a2D7dE171d3D2;
     uint256 public fee;
 
     struct Nft {

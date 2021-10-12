@@ -43,6 +43,7 @@ contract BridgedNft is ERC721URIStorage, ChainlinkClient {
         require(_wrapped != address(0), "ZERO_ADDRESS");
         wrapped = _wrapped;
         oracleManager = msg.sender;
+        fee = 1 ether;
     }
 
     function setOracleManager(address newManager) external {

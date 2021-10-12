@@ -16,17 +16,17 @@ let TARGET_NETWORK_ID = 4;
 let blockchainConfig = {
     "42": {
         "source": {
-            "address": "0x536602da5f4Bee6f359947c2AF22673A5EbC181F",
+            "address": "0x2372112ABA8173CE9491eAb2b2a786Ced8F79EdB",
             "abi": "scapeAbi"
         },
         "wrapped": {
-            "address": "0x186E521514542af46F404Ec356d556B26229dFb6",
+            "address": "0xb223728292f818447C6b7e0CcB266dc51F9c1fE7",
             "abi": "wrappedAbi"
         }
     },
     "4": {
         "bridged": {
-            "address": "0x22a272A851b81D4B0c404Cd31D49d64166546ab8",
+            "address": "0x39eEbE5b30170506e131430Ed4627DCCe6e7e77F",
             "abi": "bridgedAbi"
         }
     }

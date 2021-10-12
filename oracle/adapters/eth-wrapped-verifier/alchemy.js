@@ -147,7 +147,7 @@ let verifyWrappedNFT = async function(input, callback) {
   let returnData = {
     jobRunID: input.id,
     data: {
-      tokenId: tokenID
+      tokenID: tokenID
       // result: result        // Fast data result is returned in `result` property according to ChainLink.
     }
   };

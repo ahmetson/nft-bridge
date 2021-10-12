@@ -27,7 +27,7 @@ app.get('/', async (req, res) => {
 
   console.log(`Expected GET parameters: minter=${req.query.minter}, wrapped=${req.query.wrapped}, tokenID=${req.query.tokenID}`);
 
-  await verifyWrappedNFT({data: req.body, id: 0}, (status, result) => {
+  await verifyWrappedNFT({data: req.query, id: 0}, (status, result) => {
     console.log('Result from verifier ', result)
     res.status(status).json(result.data)
   })

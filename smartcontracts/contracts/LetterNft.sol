@@ -19,27 +19,27 @@ contract LetterNft is ERC721URIStorage {
 
         uint256 newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, "http://localhost:3032/letter/1");
+        _setTokenURI(newItemId, "https://145.14.157.48/letter/1.json");
 
         _tokenIds.increment();
 
         newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, "http://localhost:3032/letter/2");
+        _setTokenURI(newItemId, "https://145.14.157.48/letter/2.json");
 
         _tokenIds.increment();
         newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, "http://localhost:3032/letter/3");
+        _setTokenURI(newItemId, "https://145.14.157.48/letter/3.json");
 
         _tokenIds.increment();
         newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, "http://localhost:3032/letter/4");
+        _setTokenURI(newItemId, "https://145.14.157.48/letter/4.json");
 
         _tokenIds.increment();
         newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, "http://localhost:3032/letter/5");
+        _setTokenURI(newItemId, "https://145.14.157.48/letter/5.json");
     }
 }

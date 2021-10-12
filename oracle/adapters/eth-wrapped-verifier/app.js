@@ -8,12 +8,29 @@ const port = process.env.EA_PORT || 8080
 
 app.use(bodyParser.json())
 
-app.post('/', (req, res) => {
+app.post('/', async (req, res) => {
   console.log('POST Data: ', req.body)
-  verifyWrappedNFT(req.body, (status, result) => {
+  await verifyWrappedNFT(req.body, (status, result) => {
     console.log('Result: ', result)
     res.status(status).json(result)
   })
 })
+
+/**
+ * @description Expected GET parameters:
+ * minter
+ * wrapped
+ * tokenID
+ */
+app.get('/', async (req, res) => {
+  console.log('GET Data:', req.query);
+
+  console.log(`Expected GET parameters: minter=${req.query.minter}, wrapped=${req.query.wrapped}, tokenID=${req.query.tokenID}`);
+
+  await verifyWrappedNFT(req.body, (status, result) => {
+    console.log('Result from verifier ', result)
+    res.status(status).json(result.data)
+  })
+});
 
 app.listen(port, () => console.log(`Listening on port ${port}!`))

@@ -1,3 +1,4 @@
 ﻿.env
 oracle/chainlink.env
 oracle/postgres.env
+oracle/chainlink_data/log.jsonl

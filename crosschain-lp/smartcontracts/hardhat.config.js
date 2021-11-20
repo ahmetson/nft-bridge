@@ -32,15 +32,15 @@ module.exports = {
       url: process.env.KOVAN_REMOTE_HTTP,
       accounts: [process.env.KOVAN_DEPLOYER_KEY]
     },
-    bsctest: {
-      url: process.env.BSC_REMOTE_HTTP,
-      accounts: [process.env.BSC_DEPLOYER_KEY]
-    }
+    // bsctest: {
+    //   url: process.env.BSC_REMOTE_HTTP,
+    //   accounts: [process.env.BSC_DEPLOYER_KEY]
+    // }
   },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_KEY
   },
-  solidity: "0.8.6",
+  solidity: "0.5.16",
 };

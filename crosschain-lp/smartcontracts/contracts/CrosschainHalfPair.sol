@@ -16,8 +16,13 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;
-    address public token0;
-    address public token1;
+    address public thisToken;
+    address public targetToken;
+    address public offset;
+    bool    public disabled;
+    uint256 public thisChainID;
+    uint256 public targetChainID;
+    uint256[2] public locked;              // Initial locked tokens. till approvement
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
     uint112 private reserve1;           // uses single storage slot, accessible via getReserves
@@ -62,11 +67,48 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
         factory = msg.sender;
     }
 
-    // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1) external {
+        // called once by the factory at time of deployment
+    // Initialize in the pending mode that Pair Creation announced.
+    // The verifier picks the data, after matching with another part, verifier approves it.
+    /// @param offset on this blockchain offset.
+    /// @todo pass the verifier information.
+    function initialize(
+        bool isFirst
+        , uint256 chain0 
+        , address token0 
+        , uint256 chain1 
+        , address token1 
+        , uint256[2] calldata amounts
+        , uint256 _offset
+    ) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        token0 = _token0;
-        token1 = _token1;
+        disabled = true;
+        if (isFirst) {
+            thisToken = token0;
+            thisChainID = chain0;
+            targetChainID = chain1;
+            targetToken = token1;
+            locked = [amounts[0], amounts[1]];
+        } else {
+            thisToken = token0;
+            thisChainID = chain1;
+            targetChainID = chain0;
+            targetToken = token1;
+            offset = _offset;
+            locked = [amounts[1], amounts[0]];
+        }
+    }
+
+    function approveCreation() external {
+
+    }
+
+    function disapproveCreation() external {
+
+    }
+
+    function cancelCancel() external {
+
     }
 
     // update reserves and, on the first call per block, price accumulators
@@ -109,8 +151,8 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     // this low-level function should be called from a contract which performs important safety checks
     function mint(address to) external lock returns (uint liquidity) {
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        uint balance0 = IERC20(token0).balanceOf(address(this));
-        uint balance1 = IERC20(token1).balanceOf(address(this));
+        uint balance0 = IERC20(thisToken).balanceOf(address(this));
+        uint balance1 = IERC20(targetToken).balanceOf(address(this));
         uint amount0 = balance0.sub(_reserve0);
         uint amount1 = balance1.sub(_reserve1);
 
@@ -133,10 +175,10 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     // this low-level function should be called from a contract which performs important safety checks
     function burn(address to) external lock returns (uint amount0, uint amount1) {
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        address _token0 = token0;                                // gas savings
-        address _token1 = token1;                                // gas savings
-        uint balance0 = IERC20(_token0).balanceOf(address(this));
-        uint balance1 = IERC20(_token1).balanceOf(address(this));
+        address _thisToken = thisToken;                                // gas savings
+        address _targetToken = targetToken;                                // gas savings
+        uint balance0 = IERC20(_thisToken).balanceOf(address(this));
+        uint balance1 = IERC20(_targetToken).balanceOf(address(this));
         uint liquidity = balanceOf[address(this)];
 
         bool feeOn = _mintFee(_reserve0, _reserve1);
@@ -145,10 +187,10 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
         amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
         _burn(address(this), liquidity);
-        _safeTransfer(_token0, to, amount0);
-        _safeTransfer(_token1, to, amount1);
-        balance0 = IERC20(_token0).balanceOf(address(this));
-        balance1 = IERC20(_token1).balanceOf(address(this));
+        _safeTransfer(_thisToken, to, amount0);
+        _safeTransfer(_targetToken, to, amount1);
+        balance0 = IERC20(_thisToken).balanceOf(address(this));
+        balance1 = IERC20(_targetToken).balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
         if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
@@ -164,14 +206,14 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance0;
         uint balance1;
         { // scope for _token{0,1}, avoids stack too deep errors
-        address _token0 = token0;
-        address _token1 = token1;
-        require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO');
-        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+        address _thisToken = thisToken;
+        address _targetToken = targetToken;
+        require(to != _thisToken && to != _targetToken, 'UniswapV2: INVALID_TO');
+        if (amount0Out > 0) _safeTransfer(_thisToken, to, amount0Out); // optimistically transfer tokens
+        if (amount1Out > 0) _safeTransfer(_targetToken, to, amount1Out); // optimistically transfer tokens
         if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        balance0 = IERC20(_token0).balanceOf(address(this));
-        balance1 = IERC20(_token1).balanceOf(address(this));
+        balance0 = IERC20(_thisToken).balanceOf(address(this));
+        balance1 = IERC20(_targetToken).balanceOf(address(this));
         }
         uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
@@ -188,14 +230,14 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
 
     // force balances to match reserves
     function skim(address to) external lock {
-        address _token0 = token0; // gas savings
-        address _token1 = token1; // gas savings
-        _safeTransfer(_token0, to, IERC20(_token0).balanceOf(address(this)).sub(reserve0));
-        _safeTransfer(_token1, to, IERC20(_token1).balanceOf(address(this)).sub(reserve1));
+        address _thisToken = thisToken; // gas savings
+        address _targetToken = targetToken; // gas savings
+        _safeTransfer(_thisToken, to, IERC20(_thisToken).balanceOf(address(this)).sub(reserve0));
+        _safeTransfer(_targetToken, to, IERC20(_targetToken).balanceOf(address(this)).sub(reserve1));
     }
 
     // force reserves to match balances
     function sync() external lock {
-        _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+        _update(IERC20(thisToken).balanceOf(address(this)), IERC20(targetToken).balanceOf(address(this)), reserve0, reserve1);
     }
 }

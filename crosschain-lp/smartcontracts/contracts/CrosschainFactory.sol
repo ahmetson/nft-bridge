@@ -1,12 +1,12 @@
 pragma solidity =0.5.16;
 
 import './interfaces/ICrosschainFactory.sol';
+import './interfaces/IERC20.sol';
 import './CrosschainHalfPair.sol';
 
 contract CrosschainFactory is ICrosschainFactory {
     address public feeTo;
     address public feeToSetter;
-
 
     // first chain id => last chain id => token 0 => token 1 => pair
     mapping(uint256 => mapping(uint256 => mapping(address = mapping(address => address)))) public getPair;
@@ -80,10 +80,12 @@ contract CrosschainFactory is ICrosschainFactory {
      *  The token salt is generated as:
      *  firstChain, targetChain, thisToken, targetToken
      */
-    function createPair(address token0, uint256 targetChainID, address token1) external returns (address pair) {
+    function createPair(address token0, uint256 targetChainID, address token1, 
+    uint256 amount0, uint256 amount1) external returns (address pair) {
         uint256 thisChainID = getChainID();
         require(targetChainID != thisChainID && targetChainID != 0,
         "INVALID_CHAIN_ID");
+        require (amount0 > 0 && amount1 > 0, "ZERO_AMOUNT");
         
         require(token0 != address(0) && token1 != address(0), 'UniswapV2: ZERO_ADDRESS');
         require(validBlockchainPair(thisChaiID, targetBlockchainID),
@@ -102,8 +104,14 @@ contract CrosschainFactory is ICrosschainFactory {
 
         bool firstChain = firstChain(thisChainID);
 
-        // @todo should be in the pending mode.
-        CrosschainHalfPair(pair).initialize(true, chain0, token0, token1, offsets[chain0]);
+        uint balance;
+        if (firstChain) {
+            require(IERC20(token0).transferFrom(msg.sender, pair, amount0), "FAILED_TO_TRANSFER_TOKEN");
+        } else {
+            require(IERC20(token0).transferFrom(msg.sender, pair, amount1), "FAILED_TO_TRANSFER_TOKEN");
+        }
+
+        CrosschainHalfPair(pair).initialize(firstChain, chain0, token0, chain1, token1, [amount0, amount1], offsets[thisChaiID]);
         // populate mapping in the reverse direction
         getPair[chain0][chain1][token0][token1] = pair;
         getPair[chain0][chain1][token1][token0] = pair;

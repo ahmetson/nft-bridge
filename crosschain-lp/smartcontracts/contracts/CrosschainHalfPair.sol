@@ -7,6 +7,7 @@ import './libraries/UQ112x112.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/ICrosschainFactory.sol';
 import './interfaces/IUniswapV2Callee.sol';
+import './CrosschainVerifier.sol';
 
 contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     using SafeMath  for uint;
@@ -16,6 +17,7 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;
+    address public verifierManager;
     address public thisToken;
     address public targetToken;
     address public offset;
@@ -67,11 +69,10 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
         factory = msg.sender;
     }
 
-        // called once by the factory at time of deployment
+    // called once by the factory at time of deployment
     // Initialize in the pending mode that Pair Creation announced.
     // The verifier picks the data, after matching with another part, verifier approves it.
     /// @param offset on this blockchain offset.
-    /// @todo pass the verifier information.
     function initialize(
         bool isFirst
         , uint256 chain0 
@@ -80,6 +81,7 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
         , address token1 
         , uint256[2] calldata amounts
         , uint256 _offset
+        , address _verifierManager
     ) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         disabled = true;
@@ -97,17 +99,21 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
             offset = _offset;
             locked = [amounts[1], amounts[0]];
         }
+
+        verifierManager = _verifierManager;
     }
 
+    /**
+     * @todo Make sure that this one is called by the verifier
+     */
     function approveCreation() external {
 
     }
 
+    /**
+     * @todo Make sure that this one is called by the verifier
+     */
     function disapproveCreation() external {
-
-    }
-
-    function cancelCancel() external {
 
     }
 

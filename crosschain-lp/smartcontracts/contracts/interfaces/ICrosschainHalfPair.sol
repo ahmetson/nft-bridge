@@ -1,6 +1,6 @@
 pragma solidity >=0.5.0;
 
-interface IUniswapV2Pair {
+interface ICrosschainHalfPair {
     event Approval(address indexed owner, address indexed spender, uint value);
     event Transfer(address indexed from, address indexed to, uint value);
 
@@ -35,8 +35,15 @@ interface IUniswapV2Pair {
 
     function MINIMUM_LIQUIDITY() external pure returns (uint);
     function factory() external view returns (address);
-    function token0() external view returns (address);
-    function token1() external view returns (address);
+    function verifierManager() external view returns(address);
+    function thisToken() external view returns(address);
+    function targetToken() external view returns(address);
+    function offset() external view returns(uint256);
+    function disabled() external view returns(bool);
+    function thisChainID() external view returns (uint256);
+    function targetChainID() external view returns (uint256);
+    function locked(uint) external view returns(uint256);              // Initial locked tokens. till approvement
+
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
     function price0CumulativeLast() external view returns (uint);
     function price1CumulativeLast() external view returns (uint);
@@ -48,5 +55,16 @@ interface IUniswapV2Pair {
     function skim(address to) external;
     function sync() external;
 
-    function initialize(address, address) external;
+    function initialize(
+        bool 
+        , uint256  
+        , address  
+        , uint256  
+        , address  
+        , uint256[2] calldata
+        , uint256 
+        , address) external;
+
+    function approveCreation() external;
+    function disapproveCreation() external;
 }

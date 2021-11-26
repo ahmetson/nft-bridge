@@ -1,6 +1,6 @@
 pragma solidity =0.5.16;
 
-import './interfaces/IUniswapV2Pair.sol';
+import './interfaces/ICrosschainHalfPair.sol';
 import './UniswapV2ERC20.sol';
 import './libraries/Math.sol';
 import './libraries/UQ112x112.sol';
@@ -9,7 +9,7 @@ import './interfaces/ICrosschainFactory.sol';
 import './interfaces/IUniswapV2Callee.sol';
 import './CrosschainVerifier.sol';
 
-contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
+contract CrosschainHalfPair is ICrosschainHalfPair, UniswapV2ERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
@@ -20,7 +20,7 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     address public verifierManager;
     address public thisToken;
     address public targetToken;
-    address public offset;
+    uint256 public offset;
     bool    public disabled;
     uint256 public thisChainID;
     uint256 public targetChainID;
@@ -72,7 +72,7 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     // Initialize in the pending mode that Pair Creation announced.
     // The verifier picks the data, after matching with another part, verifier approves it.
-    /// @param offset on this blockchain offset.
+    /// @param _offset on this blockchain offset.
     function initialize(
         bool isFirst
         , uint256 chain0 
@@ -104,14 +104,14 @@ contract CrosschainHalfPair is IUniswapV2Pair, UniswapV2ERC20 {
     }
 
     /**
-     * @todo Make sure that this one is called by the verifier
+     * todo Make sure that this one is called by the verifier
      */
     function approveCreation() external {
 
     }
 
     /**
-     * @todo Make sure that this one is called by the verifier
+     * todo Make sure that this one is called by the verifier
      */
     function disapproveCreation() external {
 

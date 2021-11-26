@@ -5,7 +5,7 @@ import './interfaces/IERC20.sol';
 import './CrosschainHalfPair.sol';
 
 /**
- *  @todo add verifier managers
+ *  todo add verifier managers
  */
 contract CrosschainVerifier {
     uint256 verifiersAmount;

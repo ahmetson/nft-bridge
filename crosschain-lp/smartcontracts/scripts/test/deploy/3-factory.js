@@ -25,9 +25,11 @@ async function main() {
     lastOffset = addr.offsetOf(chainID);
   }
 
+  console.log(`Deployer: ${deployer.address}`)
   console.log(`Deploying factory on chain id ${chainID}`);
-  console.log(`First chain ${chainID}, last chain ${lastChainID}.`);
+  console.log(`First chain ${firstChainID}, last chain ${lastChainID}.`);
   console.log(`Offset of chain id ${chainID} is ${lastOffset}\n`);
+  console.log(`Verifier manager address on chain id ${chainID} is ${veriferAddress}\n`);
 
   const factory = await Factory.deploy(feeToSetter, veriferAddress, firstChainID, lastChainID, lastOffset);
   

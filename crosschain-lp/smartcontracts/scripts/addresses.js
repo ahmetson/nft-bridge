@@ -38,7 +38,7 @@ let addressOf = function(chainID, name) {
         throw `Address not set or alias name ${name} is invalid`;
     }
 
-    return addresses[chainID][name];
+    return addresses[chainID].contracts[name];
 }
 
 let oppositeOf = function(chainID) {

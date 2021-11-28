@@ -16,11 +16,10 @@ contract CrosschainVerifier {
     constructor(uint256 _verifiersAmount) public {
         require(_verifiersAmount > 0, "0");
         verifiersAmount = _verifiersAmount;
-        addedVerifiers++;
     }
 
     function addVerifier(address _verifier) external {
-        require(addedVerifiers + 1 < verifiersAmount, "EXCEED");
+        require(addedVerifiers + 1 <= verifiersAmount, "EXCEED");
         verifiers[_verifier] = true;
         addedVerifiers++;
     }

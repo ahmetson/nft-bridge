@@ -17,11 +17,10 @@ interface ICrosschainFactory {
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
 
-    function createPair(address token0, 
-            uint256 targetChainID, 
-            address token1, 
-            uint256 amount0, 
-            uint256 amount1) external returns (address pair);
+    function createPair(address[2] calldata tokens, 
+            uint256[2] calldata amounts, 
+            uint256 targetChainID 
+    ) external returns (address pair);
 
     function setFeeTo(address) external;
     function setFeeToSetter(address) external;

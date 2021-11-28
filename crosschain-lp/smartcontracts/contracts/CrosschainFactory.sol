@@ -49,8 +49,7 @@ contract CrosschainFactory is ICrosschainFactory {
         require(feeToSetter == address(0) || feeToSetter == msg.sender, "FORBIDDEN");
 
         uint256 _chainID = getChainID();
-        require(_chainID == _firstChainID || _chainID == _lastChainID, 
-        "XDEX: INVALID_CHAIN_ID");
+        require(_chainID == _firstChainID || _chainID == _lastChainID, "XDEX: INVALID_CHAIN_ID");
         
         if (_firstChainID == _chainID) {
             firstToLastCrosses[_firstChainID]   = _lastChainID;
@@ -61,6 +60,8 @@ contract CrosschainFactory is ICrosschainFactory {
         }
 
         emit ChanPairCreated(_firstChainID, _lastChainID, _lastOffset);
+
+        return true;
     }
 
     function allPairsLength() external view returns (uint) {
@@ -70,9 +71,9 @@ contract CrosschainFactory is ICrosschainFactory {
     /** @notice Create a Token Pair, where one of the token is
      *  on this Blockchain. While another token is on another Blockchain.
      * 
-     *  @param token0 - is the token on this blockchain.
+     *  @param tokens - first token is the token on this blockchain.
+     *  and second token is the token on another blockchain.
      *  @param targetChainID - is the blockchain where second token at.
-     *  @param token1 - is the token on another blockchain.
      *  
      *  @dev User submits the token on the first blockchain.
      *  then on the target blockchain. 
@@ -83,28 +84,23 @@ contract CrosschainFactory is ICrosschainFactory {
      *  firstChain, targetChain, thisToken, targetToken
      */
     function createPair(
-            address token0, 
-            uint256 targetChainID, 
-            address token1, 
-            uint256 amount0, 
-            uint256 amount1
-        ) external returns (address pair) {
+        address[2] calldata tokens, // token 0, token 1
+        uint256[2] calldata amounts, // amount 0, amount 1
+        uint256 targetChainID
+    ) external returns (address pair) {
         uint256 thisChainID = getChainID();
-        require(targetChainID != thisChainID && targetChainID != 0,
-        "INVALID_CHAIN_ID");
-        require (amount0 > 0 && amount1 > 0, "ZERO_AMOUNT");
+        require(targetChainID != thisChainID && targetChainID != 0, 'INVALID_CHAIN_ID');
+        require (amounts[0] > 0 && amounts[1] > 0, 'ZERO_AMOUNT');
         
-        require(token0 != address(0) && token1 != address(0), 'UniswapV2: ZERO_ADDRESS');
-        require(validBlockchainPair(thisChainID, targetChainID),
-        "INVALID_BLOCKCHAIN_PAIR");
+        require(tokens[0] != address(0) && tokens[1] != address(0), 'UniswapV2: ZERO_ADDRESS');
+        require(validBlockchainPair(thisChainID, targetChainID), 'INVALID_BLOCKCHAIN_PAIR');
 
         (uint256 chain0, uint256 chain1) = chainPairOrder(thisChainID, targetChainID);
         
-        require(getPair[chain0][chain1][token0][token1] == address(0),
-        'PAIR_EXISTS');
+        require(getPair[chain0][chain1][tokens[0]][tokens[1]] == address(0), 'PAIR_EXISTS');
 
         bytes memory bytecode = type(CrosschainHalfPair).creationCode;
-        bytes32 salt = keccak256(abi.encodePacked(chain0, chain1, token0, token1));
+        bytes32 salt = keccak256(abi.encodePacked(chain0, chain1, tokens[0], tokens[1]));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
@@ -112,20 +108,22 @@ contract CrosschainFactory is ICrosschainFactory {
         bool firstChain = firstChain(thisChainID);
 
         if (firstChain) {
-            require(IERC20(token0).transferFrom(msg.sender, pair, amount0), "FAILED_TO_TRANSFER_TOKEN");
+            require(IERC20(tokens[0]).transferFrom(msg.sender, pair, amounts[0]), "FAILED_TO_TRANSFER_TOKEN");
         } else {
-            require(IERC20(token0).transferFrom(msg.sender, pair, amount1), "FAILED_TO_TRANSFER_TOKEN");
+            require(IERC20(tokens[1]).transferFrom(msg.sender, pair, amounts[1]), "FAILED_TO_TRANSFER_TOKEN");
         }
 
-        CrosschainHalfPair(pair).initialize(firstChain, chain0, token0, chain1, token1, [amount0, amount1], offsets[thisChainID], verifierManager);
+        CrosschainHalfPair(pair).initialize(firstChain, chain0, tokens[0], chain1, tokens[1], amounts, offsets[thisChainID], verifierManager);
         // populate mapping in the reverse direction
-        getPair[chain0][chain1][token0][token1] = pair;
-        getPair[chain0][chain1][token1][token0] = pair;
-        getPair[chain1][chain0][token0][token1] = pair;
-        getPair[chain1][chain0][token1][token0] = pair;
+        getPair[chain0][chain1][tokens[0]][tokens[1]] = pair;
+        getPair[chain0][chain1][tokens[1]][tokens[0]] = pair;
+        getPair[chain1][chain0][tokens[0]][tokens[1]] = pair;
+        getPair[chain1][chain0][tokens[1]][tokens[0]] = pair;
 
         allPairs.push(pair);
-        emit PairCreated(token0, token1, pair, allPairs.length, chain0, chain1);
+        emit PairCreated(tokens[0], tokens[1], pair, allPairs.length, chain0, chain1);
+
+        return pair;
     }
 
     function setFeeTo(address _feeTo) external {

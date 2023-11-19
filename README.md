@@ -1,3 +1,10 @@
+> Deprecated
+> 
+> This version uses the Chainlink Functions to bridge NFTs across the blockchains.
+> It's deprecated in favor of the Chainlink CCIP version.
+> 
+> Please, switch to the main branch to use the new version.
+
 # NFT Bridge
 A Trustless, decentralized NFT bridge between Ethereum and Smartchain.   
 The trustless, decentralized nature of this bridge achieved through direct Smartcontract interaction on two different blockchains through Decentralized Oracles provided by [Chainlink](https://chain.link).

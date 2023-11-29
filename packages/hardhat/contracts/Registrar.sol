@@ -38,12 +38,12 @@ contract Registrar is Ownable {
 
 	constructor(uint256[] memory chainIds, ChainlinkParam[] memory chainlinkParams) {
 		require(chainIds.length == chainlinkParams.length, "invalid length");
-		require(chainIds.length >= 2, "atleast two chains required");
+		require(chainIds.length >= 2, "at least two chains required");
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
 			require(chainlinkParams[i].router != address(0), "empty address");
-			require(chainlinkParams[i].selector > 0, "empty selecter");
+			require(chainlinkParams[i].selector > 0, "empty selector");
 
 			require(chainlinkParams[i].router == address(0), "duplicate network");
 

@@ -51,7 +51,7 @@ contract Registrar is Ownable {
 		uint256 value
 	);
 
-	constructor(uint256[] memory chainIds, NetworkParams[] memory networkParams) {
+	constructor(uint256[] memory chainIds, NetworkParams[] memory networkParams) Ownable(msg.sender) {
 		require(chainIds.length == networkParams.length, "invalid length");
 		require(chainIds.length >= 2, "at least two chains required");
 

@@ -15,6 +15,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     ERC721 public source;
 
+    address public registrar;
+
     string private _name;
     string private _symbol;
 
@@ -48,6 +50,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         } catch {
             revert();
         }
+
+        registrar = msg.sender;
     }
 
     // Todo get the URL
@@ -93,14 +97,12 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         return id;
     }
 
-    // Over-write the name
+    // Override the name
     function name() public view override returns (string memory) {
         return _name;
     }
 
-    /**
-     * @dev See {IERC721Metadata-symbol}.
-     */
+    // Override the symbol
     function symbol() public view override returns (string memory) {
         return _symbol;
     }

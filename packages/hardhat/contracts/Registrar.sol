@@ -28,6 +28,15 @@ contract Registrar is Ownable {
 	uint256 public totalCounter = 0;
 	mapping(address => uint) public userGreetingCounter;
 
+	// Make sure that given chain ids are destination chains and not empty.
+	modifier destinationChains(uint256[] memory chainIds) {
+		require(chainIds.length > 0, "at-least one destination");
+		for (uint i = 0; i < chainIds.length; i++) {
+			require(chainIds[i] != block.chainid, "not this chain");
+		}
+		_;
+	}
+
 	// Events: a way to emit log statements from smart contract that can be listened to by external parties
 	event GreetingChange(
 		address indexed greetingSetter,
@@ -52,6 +61,39 @@ contract Registrar is Ownable {
 
 		// set the destinations and routers
 		require(supportedNetworks[block.chainid].router != address(0), "current network not set");
+	}
+
+	/**
+	 * Setup a new NFT to be bridged.
+	 * Only owner/creator of the nft can call this function.
+	 */
+	function setup(address nftAddr, bytes32 deployTx, uint256[] calldata chainIds) external destinationChains(chainIds) {
+		require (nftAddr.code.length > 0, "not_deployed");
+
+		bool ownable = getNftAdmin(nftAddr, msg.sender);
+		if (!ownable) {
+			require(deployTx > 0, "empty txHash");
+			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
+		}
+
+		// make sure that smartcontract is not deployed.
+	}
+
+	// Returns true if the nft is Ownable and admin is the owner.
+	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
+	function getNftAdmin(address nftAddr, address admin) public view returns (bool) {
+		Ownable ownable = Ownable(nftAddr);
+		// Even if the type return type is different, it will return true.
+		// If it doesn't implement the owner then returns the last catch.
+		try ownable.owner() returns (address owner) {
+			require(owner == admin, "owner != admin");
+		} catch Error(string memory) { // contract reverts
+			return false;
+		} catch { // contract has no owner
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

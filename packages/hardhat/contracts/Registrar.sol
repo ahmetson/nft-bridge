@@ -111,7 +111,7 @@ contract Registrar is Ownable {
 		}
 	}
 
-	// Todo add setupLinked
+	// Todo add setupLinked to be called by the oracle.
 
 	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts

@@ -1,5 +1,5 @@
 {
-  "name": "@se-2/hardhat",
+  "name": "nft-bridge-smartcontracts",
   "version": "0.0.1",
   "scripts": {
     "account": "hardhat run scripts/listAccount.ts",

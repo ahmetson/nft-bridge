@@ -13,6 +13,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable {
+	struct ChainlinkParam {
+		uint64 selector;
+		address router;
+	}
+
+	// A supported networks and their oracle parameters
+	// chain id => Chainlink Param
+	mapping(uint256 => ChainlinkParam) public supportedNetworks;
+
 	// State Variables
 	string public greeting = "Building Unstoppable Apps!!!";
 	bool public premium = false;
@@ -27,7 +36,23 @@ contract Registrar is Ownable {
 		uint256 value
 	);
 
-	constructor() {}
+	constructor(uint256[] memory chainIds, ChainlinkParam[] memory chainlinkParams) {
+		require(chainIds.length == chainlinkParams.length, "invalid length");
+		require(chainIds.length >= 2, "atleast two chains required");
+
+		for (uint64 i = 0; i < chainIds.length; i++) {
+			require(chainIds[i] > 0, "null");
+			require(chainlinkParams[i].router != address(0), "empty address");
+			require(chainlinkParams[i].selector > 0, "empty selecter");
+
+			require(chainlinkParams[i].router == address(0), "duplicate network");
+
+			supportedNetworks[chainIds[i]] = chainlinkParams[i];
+		}
+
+		// set the destinations and routers
+		require(supportedNetworks[block.chainid].router != address(0), "current network not set");
+	}
 
 	/**
 	 * Function that allows anyone to change the state variable "greeting" of the contract and increase the counters

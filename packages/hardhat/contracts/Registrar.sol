@@ -27,8 +27,6 @@ contract Registrar is Ownable {
 		uint256 value
 	);
 
-	// Constructor: Called once on contract deployment
-	// Check packages/hardhat/deploy/00_deploy_your_contract.ts
 	constructor() {}
 
 	/**

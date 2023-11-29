@@ -1,5 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { Registrar } from "../typechain-types";
+import ChainlinkParamStruct = Registrar.ChainlinkParamStruct;
 
 /**
  * Deploys a contract named "Registrar.sol" using the deployer account and
@@ -21,14 +23,21 @@ const registrarContract: DeployFunction = async function (hre: HardhatRuntimeEnv
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
+  // Main nets: Ethereum | Polygon | Avalanche C-Chain | BNB Chain
+  // Test nets: Sepolia | Mumbai | Fuji | BNB Testnet
+  const chainIds = [11155111, 80001, 1311, 97];
+  const chainlinkParams: ChainlinkParamStruct[] = [
+    { selector: "16015286601757825753", router: "0xd0daae2231e9cb96b94c8512223533293c3693bf" },
+    { selector: "12532609583862916517", router: "0x70499c328e1e2a3c41108bd3730f6670a44595d1" },
+    { selector: "14767482510784806043", router: "0x554472a2720e5e7d5d3c817529aba05eed5f82d8" },
+    { selector: "13264668187771770619", router: "0x9527e2d01a3064ef6b50c1da1c0cc523803bcff2" },
+  ];
+
   await deploy("Registrar.sol", {
     from: deployer,
     // Contract constructor arguments
-    args: [],
+    args: [chainIds, chainlinkParams],
     log: true,
-    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
-    // automatically mining the contract deployment transaction. There is no effect on live networks.
-    autoMine: true,
   });
 };
 

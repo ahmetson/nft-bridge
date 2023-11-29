@@ -125,8 +125,9 @@ The list of methods
 
 | Smartcontract | Permission | Method        | Description                                                     | Arguments                                                                     |
 |---------------|------------|---------------|-----------------------------------------------------------------|-------------------------------------------------------------------------------|
-| Registrar     | NftAdmin   | register      | Registers a new nft.<br/>Creates smartcontracts across networks | Accepts the NFT address, deployment <br/>transaction and list of destinations |
+| Registrar     | NftAdmin   | setup         | Registers a new nft.<br/>Creates smartcontracts across networks | Accepts the NFT address, deployment <br/>transaction and list of destinations |
 | Registrar     | Admin      | withdraw      | Withdraws the fees collected from the nft minting               | No arguments                                                                  |
+| Registrar     | Oracle     | xSetup        | Registers a linked nft                                          | Accepts the address of the chain ids and original nft address                 |
 | Wrapped NFT   | Anyone     | xTransferTo   | Wraps the NFT as a locked NFT and mints in the destination      | Accepts the destination                                                       |
 | Wrapped NFT   | Oracle     | unwrap        | Asks to transfer the NFT to the given address                   | Accepts the address of the owner                                              |
 | Linked NFT    | Anyone     | xTransferTo   | Burns the NFT and transfers to the destination                  | Accepts the destination                                                       |

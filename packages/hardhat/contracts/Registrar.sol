@@ -1,9 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-// Useful for debugging. Remove when deploying to a live network.
-import "hardhat/console.sol";
-
 // Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -28,12 +25,6 @@ contract Registrar is Ownable {
 	// chain id => nft address => linked nft|wrapped nft.
 	mapping(uint256 => mapping(address => address)) public linkedNfts;
 
-	// State Variables
-	string public greeting = "Building Unstoppable Apps!!!";
-	bool public premium = false;
-	uint256 public totalCounter = 0;
-	mapping(address => uint) public userGreetingCounter;
-
 	// Make sure that given chain ids are destination chains and not empty.
 	modifier destinationChains(uint256[] memory chainIds) {
 		require(chainIds.length > 0, "at-least one destination");
@@ -42,14 +33,6 @@ contract Registrar is Ownable {
 		}
 		_;
 	}
-
-	// Events: a way to emit log statements from smart contract that can be listened to by external parties
-	event GreetingChange(
-		address indexed greetingSetter,
-		string newGreeting,
-		bool premium,
-		uint256 value
-	);
 
 	constructor(uint256[] memory chainIds, NetworkParams[] memory networkParams) Ownable(msg.sender) {
 		require(chainIds.length == networkParams.length, "invalid length");
@@ -128,35 +111,6 @@ contract Registrar is Ownable {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Function that allows anyone to change the state variable "greeting" of the contract and increase the counters
-	 *
-	 * @param _newGreeting (string memory) - new greeting to save on the contract
-	 */
-	function setGreeting(string memory _newGreeting) public payable {
-		// Print data to the hardhat chain console. Remove when deploying to a live network.
-		console.log(
-			"Setting new greeting '%s' from %s",
-			_newGreeting,
-			msg.sender
-		);
-
-		// Change state variables
-		greeting = _newGreeting;
-		totalCounter += 1;
-		userGreetingCounter[msg.sender] += 1;
-
-		// msg.value: built-in global variable that represents the amount of ether sent with the transaction
-		if (msg.value > 0) {
-			premium = true;
-		} else {
-			premium = false;
-		}
-
-		// emit: keyword used to trigger an event
-		emit GreetingChange(msg.sender, _newGreeting, msg.value > 0, 0);
 	}
 
 	/**

@@ -33,6 +33,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     }
 
     // Todo get the URL
+    // Todo send to the contract.
     function mint(uint256 id)
         public
         returns (uint256)
@@ -76,7 +77,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
 
     ////////////////////////////////////////////////////////////////////////////
     //
-    // DISALLOWED NFTs, to prevent to use in Marketplace's
+    // It's a locked nft.
     //
     ////////////////////////////////////////////////////////////////////////////
 

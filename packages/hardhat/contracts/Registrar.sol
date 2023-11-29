@@ -21,6 +21,11 @@ contract Registrar is Ownable {
 	// A supported networks and their oracle parameters
 	// chain id => Chainlink Param
 	mapping(uint256 => ChainlinkParam) public supportedNetworks;
+	// The linked nft addresses across blockchains.
+	// For this blockchain it creates a wrapped NFT.
+	//
+	// chain id => nft address => linked nft|wrapped nft.
+	mapping(uint256 => mapping(address => address)) public linkedNfts;
 
 	// State Variables
 	string public greeting = "Building Unstoppable Apps!!!";
@@ -77,7 +82,23 @@ contract Registrar is Ownable {
 		}
 
 		// make sure that smartcontract is not deployed.
+		// let's create for a wrapped nft
+		if (linkedNfts[block.chainid][nftAddr] == address(0)) {
+			// Deploy the wrapped nft.
+			linkedNfts[block.chainid][nftAddr] = msg.sender;
+		}
+
+		for (uint i = 0; i < chainIds.length; i++) {
+			if (linkedNfts[chainIds[i]][nftAddr] != address(0)) {
+				continue;
+			}
+
+			// Deploy linked nft.
+			linkedNfts[chainIds[i]][nftAddr] = msg.sender;
+		}
 	}
+
+	// Todo add setupLinked
 
 	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts

@@ -13,14 +13,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable {
-	struct ChainlinkParam {
-		uint64 selector;
-		address router;
+	struct NetworkParams {
+		uint64 selector; 	// Chainlink CCIP chain selector
+		address router; 	// Chainlink CCIP router
+		address registrar; 	// NFT Bridge registrar
 	}
 
 	// A supported networks and their oracle parameters
-	// chain id => Chainlink Param
-	mapping(uint256 => ChainlinkParam) public supportedNetworks;
+	// chain id => Network Param
+	mapping(uint256 => NetworkParams) public supportedNetworks;
 	// The linked nft addresses across blockchains.
 	// For this blockchain it creates a wrapped NFT.
 	//
@@ -50,22 +51,34 @@ contract Registrar is Ownable {
 		uint256 value
 	);
 
-	constructor(uint256[] memory chainIds, ChainlinkParam[] memory chainlinkParams) {
-		require(chainIds.length == chainlinkParams.length, "invalid length");
+	constructor(uint256[] memory chainIds, NetworkParams[] memory networkParams) {
+		require(chainIds.length == networkParams.length, "invalid length");
 		require(chainIds.length >= 2, "at least two chains required");
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
-			require(chainlinkParams[i].router != address(0), "empty address");
-			require(chainlinkParams[i].selector > 0, "empty selector");
+			require(networkParams[i].router != address(0), "empty address");
+			require(networkParams[i].selector > 0, "empty selector");
 
-			require(chainlinkParams[i].router == address(0), "duplicate network");
+			require(networkParams[i].router == address(0), "duplicate network");
 
-			supportedNetworks[chainIds[i]] = chainlinkParams[i];
+			supportedNetworks[chainIds[i]] = networkParams[i];
 		}
 
 		// set the destinations and routers
 		require(supportedNetworks[block.chainid].router != address(0), "current network not set");
+	}
+
+	/**
+	 * Set's the registrar on other blockchain.
+	 */
+	function setRegistrar(uint256 chainId, address registrar) external onlyOwner {
+		require(chainId != block.chainid, "not to it's own");
+		require(supportedNetworks[chainId].router != address(0), "unsupported network");
+		// Enable in production
+		// require(supportedNetworks[chainId].registrar == address(0), "registrar exists");
+
+		supportedNetworks[chainId].registrar = registrar;
 	}
 
 	/**

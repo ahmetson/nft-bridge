@@ -63,7 +63,7 @@ contract Registrar is Ownable {
 	 * The function can only be called by the owner of the contract as defined by the isOwner modifier
 	 */
 	function withdraw() public onlyOwner {
-		(bool success, ) = owner.call{ value: address(this).balance }("");
+		(bool success, ) = owner().call{ value: address(this).balance }("");
 		require(success, "Failed to send Ether");
 	}
 

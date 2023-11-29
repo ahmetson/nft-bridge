@@ -13,7 +13,10 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
  * todo Unwrapping Wrapped NFTs is not possible in this version.
  */
 contract WrappedNft is ERC721URIStorage, IERC721Receiver {
-    address public source;
+    ERC721 public source;
+
+    string private _name;
+    string private _symbol;
 
     /// @notice The latest Block Number when NFT was minted.
     mapping(uint256 => uint256) public blockNumbers;
@@ -23,13 +26,28 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     /**
      * @param _source is the original NFT that is wrapped to bridge
      */
-    constructor(address _source) ERC721("Wrapped Bridge Scapes", "WSCAPES") {
+    constructor(address _source) ERC721("", "") {
         require(_source != address(0), "ZERO_ADDRESS");
 
-        // Todo get the String
-        // Todo get the Symbol
+        source = ERC721(_source);
 
-        source = _source;
+        // Over-write the name
+        try source.name() returns (string memory sourceName) {
+            _name = string.concat("Bridged ", sourceName);
+        } catch Error(string memory reason) {
+            revert(reason);
+        } catch {
+            revert();
+        }
+
+        // Over-write the symbol
+        try source.symbol() returns (string memory sourceSymbol) {
+            _symbol = string.concat("b", sourceSymbol);
+        } catch Error(string memory reason) {
+            revert(reason);
+        } catch {
+            revert();
+        }
     }
 
     // Todo get the URL
@@ -73,6 +91,18 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         delete blockNumbers[id];
 
         return id;
+    }
+
+    // Over-write the name
+    function name() public view override returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev See {IERC721Metadata-symbol}.
+     */
+    function symbol() public view override returns (string memory) {
+        return _symbol;
     }
 
     ////////////////////////////////////////////////////////////////////////////

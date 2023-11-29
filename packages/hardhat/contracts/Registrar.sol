@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-// Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import { WrappedNft } from "./WrappedNft.sol";
 
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
@@ -77,11 +78,14 @@ contract Registrar is Ownable {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
+		bytes32 salt = keccak256(abi.encodePacked(nftAddr, address(this)));
+
 		// make sure that smartcontract is not deployed.
 		// let's create for a wrapped nft
 		if (linkedNfts[block.chainid][nftAddr] == address(0)) {
 			// Deploy the wrapped nft.
-			linkedNfts[block.chainid][nftAddr] = msg.sender;
+			address wrappedNft = address(new WrappedNft{salt: salt}(nftAddr));
+			linkedNfts[block.chainid][nftAddr] = wrappedNft;
 		}
 
 		for (uint i = 0; i < chainIds.length; i++) {

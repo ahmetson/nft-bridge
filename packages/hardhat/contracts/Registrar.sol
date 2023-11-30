@@ -91,7 +91,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router));
+		address wrappedNft = calculateAddress(address(this), nftAddr);
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
@@ -105,6 +105,8 @@ contract Registrar is Ownable, CCIPReceiver {
 			nftSupportedChains[nftAddr].push(selectors[i]);
 		}
 
+		// todo make sure that name and symbol passes correctly.
+		// perhaps use a library for originalName and originalSymbol instead relying on wrappedNft
 		// args = nftAddr, wrappedNft, nftSupportedChains
 		// todo make sure to re-calculate the wrapped nft in the destination.
 		bytes memory data = abi.encodeWithSignature("xSetup(address,address,uint256[],string memory,string memory)",
@@ -141,6 +143,8 @@ contract Registrar is Ownable, CCIPReceiver {
 
 			emit X_Setup(selectors[i], nftAddr, messageId);
 		}
+
+		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, selectors);
 	}
 
 	function _ccipReceive(
@@ -162,7 +166,8 @@ contract Registrar is Ownable, CCIPReceiver {
 		string memory name,
 		string memory symbol
 	) private {
-		wrappedNft = calculateAddress(tempChainId, nftAddr);
+		// todo to optimize later
+		//		wrappedNft = calculateAddress(tempChainId, nftAddr);
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
@@ -181,7 +186,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			// need to use this smart contract's selector
 			// perhaps use the sender instead the blockchain? no, they could be identical
 			if (selectors[i] == networkSelector) {
-				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, name, symbol));
+				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, name, symbol, selectors));
 				require(deployedAddr == linkedNfts[selectors[i]][nftAddr], "mismatch");
 			}
 		}
@@ -229,9 +234,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 
 	// Testing
-	function calculateAddress(uint64 selector, address nftAddress) public view returns(address) {
-		require(destNetworks[selector].registrar != address(0), "no registrar");
-		address registrar = destNetworks[selector].registrar;
+	function calculateAddress(address registrar, address nftAddress) public view returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(

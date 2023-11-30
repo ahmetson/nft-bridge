@@ -13,9 +13,19 @@ contract LinkedNft is ERC721URIStorage {
     address public registrar;
     address public source;
 
-    constructor(address _source, string memory _name, string memory _symbol) ERC721(string.concat("Linked ", _name), string.concat("l", _symbol)) {
+    uint64[] public nftSupportedChains;
+
+    constructor(
+        address _source,
+        address _router,
+        string memory _name,
+        string memory _symbol,
+        uint64[] memory _destSelectors)
+        ERC721(string.concat("Linked ", _name), string.concat("l", _symbol)) {
         registrar = msg.sender;
         source = _source;
+
+        nftSupportedChains = _destSelectors;
     }
 
     // mint and burn are done by the registrar

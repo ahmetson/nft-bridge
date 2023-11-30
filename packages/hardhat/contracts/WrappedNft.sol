@@ -25,6 +25,12 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     string private _name;
     string private _symbol;
 
+    // The linked nft addresses across blockchains.
+    // For this blockchain it creates a wrapped NFT.
+    //
+    // chain id => linked nft|wrapped nft.
+    uint64[] public nftSupportedChains;
+
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
 
@@ -42,7 +48,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     /**
      * @param _source is the original NFT that is wrapped to bridge
      */
-    constructor(address _source, address _router) ERC721("", "") CCIPReceiver(_router) {
+    constructor(address _source, address _router,
+        uint64[] memory _destSelectors) ERC721("", "") CCIPReceiver(_router) {
         require(_source != address(0), "ZERO_ADDRESS");
 
         source = ERC721(_source);
@@ -50,6 +57,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         // Over-write the name and symbol
         _name = string.concat("Bridged ", originalName());
         _symbol = string.concat("b", originalSymbol());
+
+        nftSupportedChains = _destSelectors;
 
         registrar = RegistrarInterface(msg.sender);
     }

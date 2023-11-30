@@ -16,7 +16,7 @@ import { LinkedNft } from "./LinkedNft.sol";
 contract Registrar is Ownable, CCIPReceiver {
 	IRouterClient private router;
 
-	struct NetworkParams {
+  	struct Network {
 		uint64 selector; 	// Chainlink CCIP chain selector
 		address router; 	// Chainlink CCIP router
 		address registrar; 	// NFT Bridge registrar
@@ -26,7 +26,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// A supported networks and their oracle parameters
 	// chain id => Network Param
-	mapping(uint256 => NetworkParams) public supportedNetworks;
+	mapping(uint256 => Network) public supportedNetworks;
 	mapping(uint64 => uint256) public selectorToChainId;
 	// The linked nft addresses across blockchains.
 	// For this blockchain it creates a wrapped NFT.
@@ -52,9 +52,9 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor(
-		NetworkParams memory networkParams,
+		Network memory networkParams,
 		uint256[] memory chainIds,
-		NetworkParams[] memory destNetworkParams)
+		Network[] memory destNetworkParams)
 		Ownable(msg.sender) CCIPReceiver(networkParams.router) {
 		require(chainIds.length == destNetworkParams.length, "invalid length");
 		require(chainIds.length >= 1, "at least one chains required");

@@ -47,6 +47,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "@chainlink/contracts-ccip": "^0.7.6",
     "@openzeppelin/contracts": "^5.0.0",
     "dotenv": "^16.0.3",
     "envfile": "^6.18.0",

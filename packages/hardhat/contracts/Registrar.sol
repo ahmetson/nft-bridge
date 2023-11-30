@@ -44,7 +44,7 @@ contract Registrar is Ownable {
 			require(networkParams[i].router != address(0), "empty address");
 			require(networkParams[i].selector > 0, "empty selector");
 
-			require(networkParams[i].router == address(0), "duplicate network");
+			require(supportedNetworks[chainIds[i]].router == address(0), "duplicate network");
 
 			supportedNetworks[chainIds[i]] = networkParams[i];
 		}

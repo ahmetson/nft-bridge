@@ -21,11 +21,11 @@ contract Registrar is Ownable, CCIPReceiver {
 		address router; 	// Chainlink CCIP router
 	}
 
-	uint256[] public supportedChainIds;
+	uint64[] public destNetworkSelectors;
 
 	// A supported networks and their oracle parameters
 	// chain id => Network Param
-	mapping(uint256 => Network) public supportedNetworks;
+	mapping(uint256 => Network) public destNetworks;
 	// Registrar in other blockchains
 	mapping(uint64 => address) public destRegistrars;
 	mapping(uint64 => uint256) public selectorToChainId;
@@ -68,10 +68,12 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(destNetworkParams[i].router != address(0), "empty address");
 			require(destNetworkParams[i].selector > 0, "empty selector");
 
-			require(supportedNetworks[chainIds[i]].router == address(0), "duplicate network");
+			require(destNetworks[chainIds[i]].router == address(0), "duplicate network");
 
-			supportedNetworks[chainIds[i]] = destNetworkParams[i];
-			supportedChainIds.push(chainIds[i]);
+			destNetworks[chainIds[i]] = destNetworkParams[i];
+
+			destNetworkSelectors.push(destNetworkParams[i].selector);
+
 			selectorToChainId[destNetworkParams[i].selector] = chainIds[i];
 		}
 	}
@@ -81,11 +83,11 @@ contract Registrar is Ownable, CCIPReceiver {
 	 */
 	function setRegistrar(uint256 chainId, address registrar) external onlyOwner {
 		require(chainId != block.chainid, "not to it's own");
-		require(supportedNetworks[chainId].router != address(0), "unsupported network");
+		require(destNetworks[chainId].router != address(0), "unsupported network");
 		// Enable in production
 		// require(destRegistrars[supportedNetworks[chainId].selector] == address(0), "registrar exists");
 
-		destRegistrars[supportedNetworks[chainId].selector] = registrar;
+		destRegistrars[destNetworks[chainId].selector] = registrar;
 	}
 
 	/**
@@ -128,7 +130,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 		for (uint256 i = 0; i < chainIds.length; i++) {
 			messages[i] = Client.EVM2AnyMessage({
-				receiver: abi.encode(destRegistrars[supportedNetworks[chainIds[i]].selector]),
+				receiver: abi.encode(destRegistrars[destNetworks[chainIds[i]].selector]),
 				data: data,
 				tokenAmounts: new Client.EVMTokenAmount[](0),
 				extraArgs: "",
@@ -136,7 +138,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			});
 
 			fees[i] = IRouterClient(router).getFee(
-				supportedNetworks[chainIds[i]].selector,
+				destNetworks[chainIds[i]].selector,
 				messages[i]
 			);
 
@@ -148,7 +150,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 		for (uint256 i = 0; i < chainIds.length; i++) {
 			bytes32 messageId = IRouterClient(router).ccipSend{value: fees[i]}(
-				supportedNetworks[chainIds[i]].selector,
+				destNetworks[chainIds[i]].selector,
 				messages[i]
 			);
 
@@ -207,11 +209,11 @@ contract Registrar is Ownable, CCIPReceiver {
 	// @chainId the target chain id
 	// @returns destination selector
 	function chainIdToSelector(uint256 chainId) public view returns(uint64) {
-		return supportedNetworks[chainId].selector;
+		return destNetworks[chainId].selector;
 	}
 
 	function isValidRegistrar(uint256 chainId, address registrar) public view returns(bool) {
-		return destRegistrars[supportedNetworks[chainId].selector] == registrar;
+		return destRegistrars[destNetworks[chainId].selector] == registrar;
 	}
 
 
@@ -264,8 +266,8 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Testing
 	function calculateAddress(uint chainId, address nftAddress) public view returns(address) {
-		require(destRegistrars[supportedNetworks[chainId].selector] != address(0), "no registrar");
-		address registrar = destRegistrars[supportedNetworks[chainId].selector];
+		require(destRegistrars[destNetworks[chainId].selector] != address(0), "no registrar");
+		address registrar = destRegistrars[destNetworks[chainId].selector];
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -282,8 +284,8 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 	function calculateLinkedAddress(uint chainId, address nftAddress) public view returns(address) {
-		require(destRegistrars[supportedNetworks[chainId].selector] != address(0), "no registrar");
-		address registrar = destRegistrars[supportedNetworks[chainId].selector];
+		require(destRegistrars[destNetworks[chainId].selector] != address(0), "no registrar");
+		address registrar = destRegistrars[destNetworks[chainId].selector];
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(

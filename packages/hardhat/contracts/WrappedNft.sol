@@ -5,6 +5,9 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { IRouterClient } from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import "./RegistrarInterface.sol";
 
 /**
  * @notice WrappedNft is an NFT on the Source Blockchain, which locks the original NFT, and disables transferring it.
@@ -15,7 +18,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     ERC721 public source;
 
-    address public registrar;
+    RegistrarInterface public registrar;
 
     string private _name;
     string private _symbol;
@@ -24,6 +27,18 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     mapping(uint256 => uint256) public blockNumbers;
 
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
+    event X_Bridge(uint256 chainId, uint256 nftId, address owner, bytes32 messageId);
+
+    modifier nftOwner(uint256 nftId) {
+        require(source.ownerOf(nftId) == msg.sender, "not owner");
+        require(source.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");
+        _;
+    }
+
+    modifier validDestination(uint256 chainId) {
+        require(registrar.linkedNfts(chainId, address(source)) != address(0), "unsupported chain");
+        _;
+    }
 
     /**
      * @param _source is the original NFT that is wrapped to bridge
@@ -37,29 +52,13 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         _name = string.concat("Bridged ", originalName());
         _symbol = string.concat("b", originalSymbol());
 
-        registrar = msg.sender;
+        registrar = RegistrarInterface(msg.sender);
     }
 
-    // Todo get the URL
-    // Todo send to the contract.
     function mint(uint256 id)
-        public
-        returns (uint256)
+        internal
     {
-        require(id > 0, "INVALID_TOKEN_ID");
-        require(blockNumbers[id] == 0, "ALREADY_MINTED");
 
-        IERC721Metadata nft = IERC721Metadata(source);
-        require(nft.ownerOf(id) == msg.sender, "NOT_OWNER");
-
-        string memory tokenURI = nft.tokenURI(id);
-        nft.safeTransferFrom(msg.sender, address(this), id, "");
-
-        _mint(msg.sender, id);
-        _setTokenURI(id, tokenURI);
-        blockNumbers[id] = block.number;
-
-        return id;
     }
 
     /// @dev For development only.
@@ -114,6 +113,57 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
             revert();
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Bridging process
+    //
+    ////////////////////////////////////////////////////////////////////////////
+
+    function bridge(uint256 nftId, uint256 chainId) external nftOwner(nftId) validDestination(chainId) payable {
+        require(ownerOf(nftId) == address(0), "wrapped nft exists");
+        source.safeTransferFrom(msg.sender, address(this), nftId);
+        require(source.ownerOf(nftId) == address(this), "transfer failed");
+
+        string memory uri = source.tokenURI(nftId);
+
+        address linkedAddr = registrar.linkedNfts(chainId, address(source));
+        uint64 chainSelector = registrar.chainIdToSelector(chainId);
+
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(linkedAddr),
+            data: abi.encodeWithSignature("xBridge(uint256,address,string memory)", nftId, msg.sender, uri),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: address(0)
+        });
+
+        uint256 fee = IRouterClient(router).getFee(
+            chainSelector,
+            message
+        );
+        require(msg.value >= fee, "insufficient gas");
+
+        bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
+            chainSelector,
+            message
+        );
+
+        _mint(msg.sender, nftId);
+        _setTokenURI(nftId, uri);
+
+        emit X_Bridge(chainId, nftId, msg.sender, messageId);
+    }
+
+    // Only a router can call it.
+    function unBridge(uint256 nftId) internal {
+
+    }
+
+    // Call it if it's the owner, and it will withdraw from other blockchain.
+    //    function unBridge(uint256 nftId, uint256 chainId) external {
+
+    //}
 
     ////////////////////////////////////////////////////////////////////////////
     //

@@ -244,6 +244,13 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Todo add xSetupAdditional()
 
+	// Returns parameters needed to execute a cross-chain transfer
+	// @chainId the target chain id
+	// @returns destination selector
+	function chainIdToSelector(uint256 chainId) public view returns(uint64) {
+		return supportedNetworks[chainId].selector;
+	}
+
 	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
 	function getNftAdmin(address nftAddr, address admin) public view returns (bool) {

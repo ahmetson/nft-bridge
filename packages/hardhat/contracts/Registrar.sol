@@ -4,6 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import { WrappedNft } from "./WrappedNft.sol";
+import { LinkedNft } from "./LinkedNft.sol";
 
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
@@ -29,10 +30,8 @@ contract Registrar is Ownable {
 	//
 	// chain id => nft address => linked nft|wrapped nft.
 	mapping(uint256 => mapping(address => address)) public linkedNfts;
-	// nft address => amount
-	mapping(address => uint256) public nftSupportedChainAmount;
-	// nft address => index => chain id
-	mapping(address => mapping(uint256 => uint256)) public nftSupportedChains;
+	// nft address => chain id[]
+	mapping(address => uint256[]) public nftSupportedChains;
 
 	event NftAddress(uint256 chainId, address source, address target);
 
@@ -85,9 +84,12 @@ contract Registrar is Ownable {
 	/**
 	 * Setup a new NFT to be bridged.
 	 * Only owner/creator of the nft can call this function.
+	 *
+	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, bytes32 deployTx, uint256[] calldata chainIds) external destinationChains(chainIds) {
-		require (nftAddr.code.length > 0, "not_deployed");
+	function setup(address nftAddr, bytes32 deployTx, uint256[] calldata chainIds) external payable destinationChains(chainIds) {
+		require(nftAddr.code.length > 0, "not_deployed");
+		require(nftSupportedChains[nftAddr].length == 0, "call additional setup");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);
 		if (!ownable) {
@@ -97,31 +99,109 @@ contract Registrar is Ownable {
 
 		bytes32 salt = generateSalt(address(this), nftAddr);
 
-		// make sure that smartcontract is not deployed.
-		// let's create for a wrapped nft
-		if (linkedNfts[block.chainid][nftAddr] == address(0)) {
+		address wrappedNft = calculateAddress(block.chainid, nftAddr);
+
+		// First let's deploy the wrappedNft
 			// Deploy the wrapped nft.
-			address wrappedNft = address(new WrappedNft{salt: salt}(nftAddr));
 			linkedNfts[block.chainid][nftAddr] = wrappedNft;
-			uint256 amount = nftSupportedChainAmount[nftAddr]++;
-			nftSupportedChains[nftAddr][amount - 1] = block.chainid;
-		}
+			nftSupportedChains[nftAddr].push(block.chainid);
+
+//			uint64 destinationChainSelector;
+//			address receiver;
+//			PayFeesIn payFeesIn;
+//
+//			Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+//				receiver: abi.encode(receiver),
+//				data: abi.encodeWithSignature("mint(address)", msg.sender),
+//				tokenAmounts: new Client.EVMTokenAmount[](0),
+//				extraArgs: "",
+//				feeToken: address(0)
+//			});
+//
+//			uint256 fee = IRouterClient(i_router).getFee(
+//				destinationChainSelector,
+//				message
+//			);
+//
+//			require(fee > 0, "contract error");
+//			require(msg.value >= fee, "insufficient balance");
+//
+//			bytes32 messageId = IRouterClient(i_router).ccipSend{value: fee}(
+//				destinationChainSelector,
+//				message
+//			);
+//
+//			emit MessageSent(messageId);
 
 		for (uint i = 0; i < chainIds.length; i++) {
-			if (linkedNfts[chainIds[i]][nftAddr] != address(0)) {
-				continue;
-			}
+			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
 
-			// Deploy linked nft.
-			linkedNfts[chainIds[i]][nftAddr] = msg.sender;
+			address linkedAddr = calculateLinkedAddress(chainIds[i], nftAddr);
+			linkedNfts[chainIds[i]][nftAddr] = linkedAddr;
 
 			// We can optimize it by defining once, then use i as an offset.
-			uint256 amount = nftSupportedChainAmount[nftAddr]++;
-			nftSupportedChains[nftAddr][amount - 1] = chainIds[i];
+			nftSupportedChains[nftAddr].push(chainIds[i]);
 		}
+
+		// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
+		bytes memory data = abi.encodeWithSignature("xSetup(uint256,address,address,uint256[])",
+			block.chainid, nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
+		for (uint256 i = 0; i < chainIds.length; i++) {
+			// send the data
+		}
+
+		// for previously deployed contracts, submit addition of a new network.
+		// for new contracts submit all.
+
+		// Generate the arguments. Then pass the wrappedNft and list of chain ids.
+		// [sourceChainId, nftAddr, wrappedAddr, destChainIds]
+		// Todo Deploy linked nft. Pass the nft address, deployed address.
+
+		// Precompute the address
+		// todo let's make it after sending the data
+		address deployedWrappedNft = address(new WrappedNft{salt: salt}(nftAddr));
+		require(deployedWrappedNft == wrappedNft, "mismatch");
 	}
 
-	// Todo add setupLinked to be called by the oracle.
+	// If your NFT wants to support new chains, call this.
+	function additionalSetup(address nftAddr, uint256[] calldata chainIds) external payable destinationChains(chainIds) {
+		require (nftAddr.code.length > 0, "not_deployed");
+		require (nftSupportedChains[nftAddr].length > 0, "call setup");
+
+		uint256 lastAmount = nftSupportedChains[nftAddr].length;
+		address wrappedNft = linkedNfts[block.chainid][nftAddr];
+		require (wrappedNft != address(0), "no wrapped");
+		require (wrappedNft.code.length > 0, "not_deployed");
+
+		for (uint i = 0; i < chainIds.length; i++) {
+			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
+
+			address linkedAddr = calculateLinkedAddress(chainIds[i], nftAddr);
+			linkedNfts[chainIds[i]][nftAddr] = linkedAddr;
+
+			// We can optimize it by defining once, then use i as an offset.
+			nftSupportedChains[nftAddr].push(chainIds[i]);
+		}
+
+		uint256 amount = lastAmount + chainIds.length;
+		if (lastAmount > 0) {
+			// args = block.chainid, nftAddr, wrappedNft, chainIds
+			bytes memory data = abi.encodeWithSignature("xSetupAdditional(uint256,address,address,uint256[])",
+				block.chainid, nftAddr, wrappedNft, chainIds);
+		}
+		for (uint256 i = lastAmount; i < amount; i++) {
+			// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
+			bytes memory data = abi.encodeWithSignature("xSetup(uint256,address,address,uint256[])",
+				block.chainid, nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
+		}
+
+		// call the sending
+
+	}
+
+	// Todo add xSetup to be called by the oracle.
+
+	// Todo add xSetupAdditional()
 
 	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts

@@ -74,7 +74,12 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 	/**
-	 * Setup a new NFT to be bridged.
+	 * Register the NFT to be bridged across the networks.
+	 * This smartcontract creates the Wrapped NFT.
+	 * Then invokes the message to the factories in other chains.
+	 *
+	 * The factory upon receiving the message creates the Linked NFT and lints it to other NFTs.
+	 *
 	 * Only owner/creator of the nft can call this function.
 	 *
 	 * Setup of additional chains moved to it's own function

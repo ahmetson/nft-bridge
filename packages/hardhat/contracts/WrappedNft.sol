@@ -55,12 +55,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         registrar = RegistrarInterface(msg.sender);
     }
 
-    function mint(uint256 id)
-        internal
-    {
-
-    }
-
     /// @dev For development only.
     function withdraw(uint256 id) 
         public

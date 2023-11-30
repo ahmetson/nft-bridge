@@ -14,8 +14,6 @@ import { LinkedNft } from "./LinkedNft.sol";
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable, CCIPReceiver {
-	IRouterClient private router;
-
   	struct Network {
 		uint64 selector; 	// Chainlink CCIP chain selector
 		address router; 	// Chainlink CCIP router
@@ -77,8 +75,6 @@ contract Registrar is Ownable, CCIPReceiver {
 			supportedChainIds.push(chainIds[i]);
 			selectorToChainId[networkParams.selector] = chainIds[i];
 		}
-
-		router = IRouterClient(networkParams.router);
 	}
 
 	/**
@@ -140,7 +136,7 @@ contract Registrar is Ownable, CCIPReceiver {
 				feeToken: address(0)
 			});
 
-			fees[i] = router.getFee(
+			fees[i] = IRouterClient(supportedNetworks[block.chainid].router).getFee(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);
@@ -152,7 +148,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(msg.value >= totalFee, "insufficient balance");
 
 		for (uint256 i = 0; i < chainIds.length; i++) {
-			bytes32 messageId = router.ccipSend{value: fees[i]}(
+			bytes32 messageId = IRouterClient(supportedNetworks[block.chainid].router).ccipSend{value: fees[i]}(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);

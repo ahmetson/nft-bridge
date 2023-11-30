@@ -11,9 +11,11 @@ import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extension
  */
 contract LinkedNft is ERC721URIStorage {
     address public registrar;
+    address public source;
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+    constructor(address _source, string memory _name, string memory _symbol) ERC721(_name, _symbol) {
         registrar = msg.sender;
+        source = _source;
     }
 
     // mint and burn are done by the registrar

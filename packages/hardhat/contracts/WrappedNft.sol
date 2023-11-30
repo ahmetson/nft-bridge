@@ -25,9 +25,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     string private _name;
     string private _symbol;
 
-    /// @notice The latest Block Number when NFT was minted.
-    mapping(uint256 => uint256) public blockNumbers;
-
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
 
@@ -55,27 +52,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         _symbol = string.concat("b", originalSymbol());
 
         registrar = RegistrarInterface(msg.sender);
-    }
-
-    /// @dev For development only.
-    function withdraw(uint256 id) 
-        public
-        returns (uint256)
-    {
-        require(id > 0, "INVALID_TOKEN_ID");
-        require(blockNumbers[id] > 0, "NOT_MINTED");
-        require(ownerOf(id) == msg.sender, "NOT_OWNER");
-
-        IERC721Metadata nft = IERC721Metadata(source);
-        require(nft.ownerOf(id) == address(this), "NOT_WRAPPED");
-
-        nft.safeTransferFrom(address(this), msg.sender, id, "");
-
-        _burn(id);
-
-        delete blockNumbers[id];
-
-        return id;
     }
 
     // Override the name

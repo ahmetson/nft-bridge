@@ -78,7 +78,7 @@ contract Registrar is Ownable {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		bytes32 salt = keccak256(abi.encodePacked(nftAddr, address(this)));
+		bytes32 salt = generateSalt(address(this), nftAddr);
 
 		// make sure that smartcontract is not deployed.
 		// let's create for a wrapped nft
@@ -126,4 +126,43 @@ contract Registrar is Ownable {
 		require(success, "Failed to send Ether");
 	}
 
+	function generateSalt(address registrar, address nftAddr) public pure returns(bytes32) {
+		return keccak256(abi.encodePacked(registrar, nftAddr));
+	}
+
+
+	function calculateAddress(address nftAddress) external view returns(address) {
+		bytes32 salt = generateSalt(address(this), nftAddress);
+
+		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
+			bytes1(0xff),
+			address(this), // address of the smartcontract
+			salt,
+			keccak256(abi.encodePacked(
+				type(WrappedNft).creationCode,
+				abi.encode(nftAddress)
+			))
+		)))));
+
+		return predictedAddress;
+	}
+
+	// Testing
+	function calculateAddress(uint chainId, address nftAddress) external view returns(address) {
+		require(supportedNetworks[chainId].registrar != address(0), "no registrar");
+		address registrar = supportedNetworks[chainId].registrar;
+		bytes32 salt = generateSalt(registrar, nftAddress);
+
+		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
+			bytes1(0xff),
+			registrar, // address of the smartcontract
+			salt,
+			keccak256(abi.encodePacked(
+				type(WrappedNft).creationCode,
+				abi.encode(nftAddress)
+			))
+		)))));
+
+		return predictedAddress;
+	}
 }

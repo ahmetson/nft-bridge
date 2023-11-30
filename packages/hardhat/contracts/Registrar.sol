@@ -35,22 +35,25 @@ contract Registrar is Ownable {
 		_;
 	}
 
-	constructor(uint256[] memory chainIds, NetworkParams[] memory networkParams) Ownable(msg.sender) {
-		require(chainIds.length == networkParams.length, "invalid length");
-		require(chainIds.length >= 2, "at least two chains required");
+	// Todo get chainlink receiver and pass networkParams.router
+	constructor(NetworkParams memory networkParams, uint256[] memory chainIds, NetworkParams[] memory destNetworkParams) Ownable(msg.sender) {
+		require(chainIds.length == destNetworkParams.length, "invalid length");
+		require(chainIds.length >= 1, "at least one chains required");
+
+		require(networkParams.router != address(0), "empty address");
+		require(networkParams.selector > 0, "empty selector");
+
+		supportedNetworks[block.chainid] = networkParams;
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
-			require(networkParams[i].router != address(0), "empty address");
-			require(networkParams[i].selector > 0, "empty selector");
+			require(destNetworkParams[i].router != address(0), "empty address");
+			require(destNetworkParams[i].selector > 0, "empty selector");
 
 			require(supportedNetworks[chainIds[i]].router == address(0), "duplicate network");
 
-			supportedNetworks[chainIds[i]] = networkParams[i];
+			supportedNetworks[chainIds[i]] = destNetworkParams[i];
 		}
-
-		// set the destinations and routers
-		require(supportedNetworks[block.chainid].router != address(0), "current network not set");
 	}
 
 	/**

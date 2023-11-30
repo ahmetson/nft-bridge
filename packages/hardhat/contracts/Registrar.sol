@@ -161,42 +161,6 @@ contract Registrar is Ownable, CCIPReceiver {
 		}
 	}
 
-	// If your NFT wants to support new chains, call this.
-	function additionalSetup(address nftAddr, uint256[] calldata chainIds) external payable destinationChains(chainIds) {
-		require (nftAddr.code.length > 0, "not_deployed");
-		require (nftSupportedChains[nftAddr].length > 0, "call setup");
-
-		uint256 lastAmount = nftSupportedChains[nftAddr].length;
-		address wrappedNft = linkedNfts[block.chainid][nftAddr];
-		require (wrappedNft != address(0), "no wrapped");
-		require (wrappedNft.code.length > 0, "not_deployed");
-
-		for (uint i = 0; i < chainIds.length; i++) {
-			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
-
-			address linkedAddr = calculateLinkedAddress(chainIds[i], nftAddr);
-			linkedNfts[chainIds[i]][nftAddr] = linkedAddr;
-
-			// We can optimize it by defining once, then use i as an offset.
-			nftSupportedChains[nftAddr].push(chainIds[i]);
-		}
-
-		uint256 amount = lastAmount + chainIds.length;
-		if (lastAmount > 0) {
-			// args = block.chainid, nftAddr, wrappedNft, chainIds
-			bytes memory data = abi.encodeWithSignature("xSetupAdditional(uint256,address,address,uint256[])",
-				block.chainid, nftAddr, wrappedNft, chainIds);
-		}
-		for (uint256 i = lastAmount; i < amount; i++) {
-			// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
-			bytes memory data = abi.encodeWithSignature("xSetup(uint256,address,address,uint256[])",
-				block.chainid, nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
-		}
-
-		// call the sending
-
-	}
-
 	function _ccipReceive(
 		Client.Any2EVMMessage memory message
 	) internal override {

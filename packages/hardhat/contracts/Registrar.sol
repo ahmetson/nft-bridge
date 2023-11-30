@@ -28,13 +28,6 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
-	// The linked nft addresses across blockchains.
-	// For this blockchain it creates a wrapped NFT.
-	//
-	// chain id => nft address => linked nft|wrapped nft.
-	mapping(uint64 => mapping(address => address)) public linkedNfts;
-	// nft address => chain id[]
-	mapping(address => uint64[]) public nftSupportedChains;
 
 	uint64 private tempChainId;
 
@@ -83,7 +76,6 @@ contract Registrar is Ownable, CCIPReceiver {
 	 */
 	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
-		require(nftSupportedChains[nftAddr].length == 0, "call additional setup");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);
 		if (!ownable) {
@@ -92,25 +84,14 @@ contract Registrar is Ownable, CCIPReceiver {
 		}
 
 		address wrappedNft = calculateAddress(address(this), nftAddr);
-
-		// First let's deploy the wrappedNft
-		// Deploy the wrapped nft.
-		linkedNfts[1][nftAddr] = wrappedNft;
-		nftSupportedChains[nftAddr].push(1);
-
-		// Pre-calculate the nft addresses
-		for (uint i = 0; i < selectors.length; i++) {
-			require(linkedNfts[selectors[i]][nftAddr] == address(0), "already linked");
-			linkedNfts[selectors[i]][nftAddr] = calculateLinkedAddress(selectors[i], nftAddr);
-			nftSupportedChains[nftAddr].push(selectors[i]);
-		}
+		require(wrappedNft.code.length == 0, "already setted up");
 
 		// todo make sure that name and symbol passes correctly.
 		// perhaps use a library for originalName and originalSymbol instead relying on wrappedNft
 		// args = nftAddr, wrappedNft, nftSupportedChains
 		// todo make sure to re-calculate the wrapped nft in the destination.
-		bytes memory data = abi.encodeWithSignature("xSetup(address,address,uint256[],string memory,string memory)",
-			nftAddr, wrappedNft, nftSupportedChains[nftAddr], WrappedNft(wrappedNft).originalName(), WrappedNft(wrappedNft).originalSymbol());
+		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string memory,string memory)",
+			nftAddr, selectors, WrappedNft(wrappedNft).originalName(), WrappedNft(wrappedNft).originalSymbol());
 		uint256 totalFee = 0;
 		uint256[] memory fees = new uint256[](selectors.length);
 		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](selectors.length);
@@ -162,33 +143,23 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	function xSetup(
 		address nftAddr,
-		address wrappedNft, uint64[] calldata selectors,
+		uint64[] calldata selectors,
 		string memory name,
 		string memory symbol
 	) private {
-		// todo to optimize later
-		//		wrappedNft = calculateAddress(tempChainId, nftAddr);
-
-		// First let's deploy the wrappedNft
-		// Deploy the wrapped nft.
-		linkedNfts[tempChainId][nftAddr] = wrappedNft;
-		nftSupportedChains[nftAddr].push(tempChainId);
-
 		address deployedAddr;
 
 		// Pre-calculate the nft addresses
 		for (uint i = 0; i < selectors.length; i++) {
-			require(linkedNfts[selectors[i]][nftAddr] == address(0), "already linked");
-			linkedNfts[selectors[i]][nftAddr] = calculateLinkedAddress(selectors[i], nftAddr);
-			nftSupportedChains[nftAddr].push(selectors[i]);
-
 			// need to use this smart contract's selector
 			// need to use this smart contract's selector
 			// perhaps use the sender instead the blockchain? no, they could be identical
-			if (selectors[i] == networkSelector) {
-				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, name, symbol, selectors));
-				require(deployedAddr == linkedNfts[selectors[i]][nftAddr], "mismatch");
+			if (selectors[i] != networkSelector) {
+				continue;
 			}
+
+			new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, name, symbol, selectors);
+			break;
 		}
 
 		require(deployedAddr != address(0), "no this blockchain");
@@ -234,7 +205,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 
 	// Testing
-	function calculateAddress(address registrar, address nftAddress) public view returns(address) {
+	function calculateAddress(address registrar, address nftAddress) public pure returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -250,9 +221,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		return predictedAddress;
 	}
 
-	function calculateLinkedAddress(uint64 selector, address nftAddress) public view returns(address) {
-		require(destNetworks[selector].registrar != address(0), "no registrar");
-		address registrar = destNetworks[selector].registrar;
+	function calculateLinkedAddress(address registrar, address nftAddress) public pure returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(

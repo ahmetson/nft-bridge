@@ -14,12 +14,12 @@ import { LinkedNft } from "./LinkedNft.sol";
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable, CCIPReceiver {
+	address public router;
+
   	struct Network {
 		uint64 selector; 	// Chainlink CCIP chain selector
 		address router; 	// Chainlink CCIP router
 	}
-
-	Network public network;
 
 	uint256[] public supportedChainIds;
 
@@ -53,17 +53,15 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor(
-		Network memory _network,
+		address _router,
 		uint256[] memory chainIds,
 		Network[] memory destNetworkParams)
-		Ownable(msg.sender) CCIPReceiver(_network.router) {
+		Ownable(msg.sender) CCIPReceiver(_router) {
 		require(chainIds.length == destNetworkParams.length, "invalid length");
 		require(chainIds.length >= 1, "at least one chains required");
 
-		require(_network.router != address(0), "empty address");
-		require(_network.selector > 0, "empty selector");
-
-		network = _network;
+		require(_router != address(0), "empty address");
+		router = _router;
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
@@ -106,7 +104,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, network.router));
+		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router));
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
@@ -137,7 +135,7 @@ contract Registrar is Ownable, CCIPReceiver {
 				feeToken: address(0)
 			});
 
-			fees[i] = IRouterClient(network.router).getFee(
+			fees[i] = IRouterClient(router).getFee(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);
@@ -149,7 +147,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(msg.value >= totalFee, "insufficient balance");
 
 		for (uint256 i = 0; i < chainIds.length; i++) {
-			bytes32 messageId = IRouterClient(network.router).ccipSend{value: fees[i]}(
+			bytes32 messageId = IRouterClient(router).ccipSend{value: fees[i]}(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);

@@ -143,7 +143,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	function xSetup(
 		address nftAddr,
-		uint64[] calldata selectors,
+		uint64[] memory selectors,
 		string memory name,
 		string memory symbol
 	) private {

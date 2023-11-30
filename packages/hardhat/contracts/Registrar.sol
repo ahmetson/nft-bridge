@@ -19,7 +19,7 @@ contract Registrar is Ownable {
 		address registrar; 	// NFT Bridge registrar
 	}
 
-	uint256[] public chainIds;
+	uint256[] public supportedChainIds;
 
 	// A supported networks and their oracle parameters
 	// chain id => Network Param
@@ -48,7 +48,7 @@ contract Registrar is Ownable {
 		require(networkParams.selector > 0, "empty selector");
 
 		supportedNetworks[block.chainid] = networkParams;
-		chainIds.push(block.chainid);
+		supportedChainIds.push(block.chainid);
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
@@ -58,7 +58,7 @@ contract Registrar is Ownable {
 			require(supportedNetworks[chainIds[i]].router == address(0), "duplicate network");
 
 			supportedNetworks[chainIds[i]] = destNetworkParams[i];
-			chainIds.push(block.chainid);
+			supportedChainIds.push(block.chainid);
 		}
 
 		router = IRouterClient(networkParams.router);

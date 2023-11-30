@@ -19,6 +19,8 @@ contract Registrar is Ownable, CCIPReceiver {
 		address router; 	// Chainlink CCIP router
 	}
 
+	Network public network;
+
 	uint256[] public supportedChainIds;
 
 	// A supported networks and their oracle parameters
@@ -51,19 +53,17 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor(
-		Network memory networkParams,
+		Network memory _network,
 		uint256[] memory chainIds,
 		Network[] memory destNetworkParams)
-		Ownable(msg.sender) CCIPReceiver(networkParams.router) {
+		Ownable(msg.sender) CCIPReceiver(_network.router) {
 		require(chainIds.length == destNetworkParams.length, "invalid length");
 		require(chainIds.length >= 1, "at least one chains required");
 
-		require(networkParams.router != address(0), "empty address");
-		require(networkParams.selector > 0, "empty selector");
+		require(_network.router != address(0), "empty address");
+		require(_network.selector > 0, "empty selector");
 
-		supportedNetworks[block.chainid] = networkParams;
-		supportedChainIds.push(block.chainid);
-		selectorToChainId[networkParams.selector] = block.chainid;
+		network = _network;
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
@@ -106,7 +106,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, supportedNetworks[block.chainid].router));
+		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, network.router));
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
@@ -137,7 +137,7 @@ contract Registrar is Ownable, CCIPReceiver {
 				feeToken: address(0)
 			});
 
-			fees[i] = IRouterClient(supportedNetworks[block.chainid].router).getFee(
+			fees[i] = IRouterClient(network.router).getFee(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);
@@ -149,7 +149,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(msg.value >= totalFee, "insufficient balance");
 
 		for (uint256 i = 0; i < chainIds.length; i++) {
-			bytes32 messageId = IRouterClient(supportedNetworks[block.chainid].router).ccipSend{value: fees[i]}(
+			bytes32 messageId = IRouterClient(network.router).ccipSend{value: fees[i]}(
 				supportedNetworks[chainIds[i]].selector,
 				messages[i]
 			);

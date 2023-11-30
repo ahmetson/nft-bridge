@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 type NetworkParams = {
-  selector: number|string;
+  selector: number | string;
   router: string;
   registrar: string;
 };
@@ -27,20 +27,46 @@ const registrarContract: DeployFunction = async function (hre: HardhatRuntimeEnv
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
+  const chainId = parseInt(await hre.getChainId());
+
   // Main nets: Ethereum | Polygon | Avalanche C-Chain | BNB Chain
   // Test nets: Sepolia | Mumbai | Fuji | BNB Testnet
   const chainIds = [11155111, 80001, 1311, 97];
-  const chainlinkParams: NetworkParams[] = [
-    { selector: "0xDE41BA4FC9D91AD9", router: "0xd0daae2231e9cb96b94c8512223533293c3693bf", registrar: "0x0000000000000000000000000000000000000000" },
-    { selector: "0xADECC60412CE25A5", router: "0x70499c328e1e2a3c41108bd3730f6670a44595d1", registrar: "0x0000000000000000000000000000000000000000" },
-    { selector: "0xCCF0A31A221F3C9B", router: "0x554472a2720e5e7d5d3c817529aba05eed5f82d8", registrar: "0x0000000000000000000000000000000000000000" },
-    { selector: "0xB8159170038F96FB", router: "0x9527e2d01a3064ef6b50c1da1c0cc523803bcff2", registrar: "0x0000000000000000000000000000000000000000" },
+  const supportedNetworkParams: NetworkParams[] = [
+    {
+      selector: "0xDE41BA4FC9D91AD9",
+      router: "0xd0daae2231e9cb96b94c8512223533293c3693bf",
+      registrar: "0x0000000000000000000000000000000000000000",
+    },
+    {
+      selector: "0xADECC60412CE25A5",
+      router: "0x70499c328e1e2a3c41108bd3730f6670a44595d1",
+      registrar: "0x0000000000000000000000000000000000000000",
+    },
+    {
+      selector: "0xCCF0A31A221F3C9B",
+      router: "0x554472a2720e5e7d5d3c817529aba05eed5f82d8",
+      registrar: "0x0000000000000000000000000000000000000000",
+    },
+    {
+      selector: "0xB8159170038F96FB",
+      router: "0x9527e2d01a3064ef6b50c1da1c0cc523803bcff2",
+      registrar: "0x0000000000000000000000000000000000000000",
+    },
   ];
+
+  const chainIndex = chainIds.indexOf(chainId);
+  if (chainIndex === -1) {
+    throw Error(`Chain ID ${chainId} not found in ${chainIds}`);
+  }
+
+  chainIds.splice(chainIndex, 1);
+  const networkParams = supportedNetworkParams.splice(chainIndex, 1);
 
   await deploy("Registrar", {
     from: deployer,
     // Contract constructor arguments
-    args: [chainIds, chainlinkParams],
+    args: [networkParams[0], chainIds, supportedNetworkParams],
     log: true,
   });
 };

@@ -28,9 +28,6 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
-	// Registrar in other blockchains
-	mapping(uint64 => address) public destRegistrars;
-	mapping(uint64 => uint256) public selectorToChainId;
 	// The linked nft addresses across blockchains.
 	// For this blockchain it creates a wrapped NFT.
 	//
@@ -151,7 +148,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	) internal override {
 		require(message.sourceChainSelector != networkSelector, "called from same network");
 		address sourceRegistrar = abi.decode(message.sender, (address));
-		require(destRegistrars[message.sourceChainSelector] == sourceRegistrar, "not registrar");
+		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not registrar");
 
 		tempChainId = message.sourceChainSelector;
 		(bool success, ) = address(this).call(message.data);

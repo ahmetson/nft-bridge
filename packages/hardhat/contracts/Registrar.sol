@@ -29,6 +29,12 @@ contract Registrar is Ownable {
 	//
 	// chain id => nft address => linked nft|wrapped nft.
 	mapping(uint256 => mapping(address => address)) public linkedNfts;
+	// nft address => amount
+	mapping(address => uint256) public nftSupportedChainAmount;
+	// nft address => index => chain id
+	mapping(address => mapping(uint256 => uint256)) public nftSupportedChains;
+
+	event NftAddress(uint256 chainId, address source, address target);
 
 	// Make sure that given chain ids are destination chains and not empty.
 	modifier destinationChains(uint256[] memory chainIds) {
@@ -97,6 +103,8 @@ contract Registrar is Ownable {
 			// Deploy the wrapped nft.
 			address wrappedNft = address(new WrappedNft{salt: salt}(nftAddr));
 			linkedNfts[block.chainid][nftAddr] = wrappedNft;
+			uint256 amount = nftSupportedChainAmount[nftAddr]++;
+			nftSupportedChains[nftAddr][amount - 1] = block.chainid;
 		}
 
 		for (uint i = 0; i < chainIds.length; i++) {
@@ -106,6 +114,10 @@ contract Registrar is Ownable {
 
 			// Deploy linked nft.
 			linkedNfts[chainIds[i]][nftAddr] = msg.sender;
+
+			// We can optimize it by defining once, then use i as an offset.
+			uint256 amount = nftSupportedChainAmount[nftAddr]++;
+			nftSupportedChains[nftAddr][amount - 1] = chainIds[i];
 		}
 	}
 

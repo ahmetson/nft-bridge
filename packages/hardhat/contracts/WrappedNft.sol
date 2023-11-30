@@ -22,9 +22,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     RegistrarInterface public registrar;
     address public router;
 
-    string private _name;
-    string private _symbol;
-
     // The linked nft addresses across blockchains.
     // For this blockchain it creates a wrapped NFT.
     //
@@ -48,52 +45,21 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     /**
      * @param _source is the original NFT that is wrapped to bridge
      */
-    constructor(address _source, address _router,
-        uint64[] memory _destSelectors) ERC721("", "") CCIPReceiver(_router) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address _source,
+        address _router,
+        uint64[] memory _destSelectors) ERC721(_name, _symbol) CCIPReceiver(_router) {
         require(_source != address(0), "ZERO_ADDRESS");
 
         source = ERC721(_source);
-
-        // Over-write the name and symbol
-        _name = string.concat("Bridged ", originalName());
-        _symbol = string.concat("b", originalSymbol());
 
         nftSupportedChains = _destSelectors;
 
         registrar = RegistrarInterface(msg.sender);
     }
 
-    // Override the name
-    function name() public view override returns (string memory) {
-        return _name;
-    }
-
-    // Override the symbol
-    function symbol() public view override returns (string memory) {
-        return _symbol;
-    }
-
-    function originalName() public view returns (string memory) {
-        // Over-write the name
-        try source.name() returns (string memory sourceName) {
-            return sourceName;
-        } catch Error(string memory reason) {
-            revert(reason);
-        } catch {
-            revert();
-        }
-    }
-
-    function originalSymbol() public view returns (string memory) {
-        // Over-write the name
-        try source.symbol() returns (string memory sourceSymbol) {
-            return sourceSymbol;
-        } catch Error(string memory reason) {
-            revert(reason);
-        } catch {
-            revert();
-        }
-    }
 
     ////////////////////////////////////////////////////////////////////////////
     //

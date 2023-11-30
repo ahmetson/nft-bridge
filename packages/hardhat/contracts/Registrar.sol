@@ -7,6 +7,7 @@ import { Client } from "./chainlink/ccip/libraries/Client.sol";
 import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 import { LinkedNft } from "./LinkedNft.sol";
+import { SourceNftLib } from "./SourceNftLib.sol";
 
 // todo keep the selector of this chain
 
@@ -83,15 +84,18 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		address wrappedNft = calculateAddress(address(this), nftAddr);
-		require(wrappedNft.code.length == 0, "already setted up");
+		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
+		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
+
+		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router, selectors);
+		require(wrappedNft.code.length == 0, "already set up");
 
 		// todo make sure that name and symbol passes correctly.
 		// perhaps use a library for originalName and originalSymbol instead relying on wrappedNft
 		// args = nftAddr, wrappedNft, nftSupportedChains
 		// todo make sure to re-calculate the wrapped nft in the destination.
 		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string memory,string memory)",
-			nftAddr, selectors, WrappedNft(wrappedNft).originalName(), WrappedNft(wrappedNft).originalSymbol());
+			nftAddr, selectors, wrappedName, wrappedSymbol);
 		uint256 totalFee = 0;
 		uint256[] memory fees = new uint256[](selectors.length);
 		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](selectors.length);
@@ -125,7 +129,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			emit X_Setup(selectors[i], nftAddr, messageId);
 		}
 
-		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, selectors);
+		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router, selectors);
 	}
 
 	function _ccipReceive(
@@ -204,8 +208,14 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 
+	// Todo move it to the library
+	// Let it calculate the user parameters
 	// Testing
-	function calculateAddress(address registrar, address nftAddress) public pure returns(address) {
+	function precomputeWrappedNft(address registrar, string memory _name,
+		string memory _symbol,
+		address nftAddress,
+		address _router,
+		uint64[] memory _destSelectors) public pure returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -214,7 +224,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			salt,
 			keccak256(abi.encodePacked(
 				type(WrappedNft).creationCode,
-				abi.encode(nftAddress)
+				abi.encode(_name, _symbol, nftAddress, _router, _destSelectors)
 			))
 		)))));
 

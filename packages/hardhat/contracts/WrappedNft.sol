@@ -33,23 +33,9 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
 
         source = ERC721(_source);
 
-        // Over-write the name
-        try source.name() returns (string memory sourceName) {
-            _name = string.concat("Bridged ", sourceName);
-        } catch Error(string memory reason) {
-            revert(reason);
-        } catch {
-            revert();
-        }
-
-        // Over-write the symbol
-        try source.symbol() returns (string memory sourceSymbol) {
-            _symbol = string.concat("b", sourceSymbol);
-        } catch Error(string memory reason) {
-            revert(reason);
-        } catch {
-            revert();
-        }
+        // Over-write the name and symbol
+        _name = string.concat("Bridged ", originalName());
+        _symbol = string.concat("b", originalSymbol());
 
         registrar = msg.sender;
     }
@@ -105,6 +91,28 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     // Override the symbol
     function symbol() public view override returns (string memory) {
         return _symbol;
+    }
+
+    function originalName() public view returns (string memory) {
+        // Over-write the name
+        try source.name() returns (string memory sourceName) {
+            return sourceName;
+        } catch Error(string memory reason) {
+            revert(reason);
+        } catch {
+            revert();
+        }
+    }
+
+    function originalSymbol() public view returns (string memory) {
+        // Over-write the name
+        try source.symbol() returns (string memory sourceSymbol) {
+            return sourceSymbol;
+        } catch Error(string memory reason) {
+            revert(reason);
+        } catch {
+            revert();
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////

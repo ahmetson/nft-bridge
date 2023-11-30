@@ -64,7 +64,7 @@ contract Registrar is Ownable {
 			require(supportedNetworks[chainIds[i]].router == address(0), "duplicate network");
 
 			supportedNetworks[chainIds[i]] = destNetworkParams[i];
-			supportedChainIds.push(block.chainid);
+			supportedChainIds.push(chainIds[i]);
 		}
 
 		router = IRouterClient(networkParams.router);

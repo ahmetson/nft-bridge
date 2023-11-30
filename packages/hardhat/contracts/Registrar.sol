@@ -74,7 +74,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 			supportedNetworks[chainIds[i]] = destNetworkParams[i];
 			supportedChainIds.push(chainIds[i]);
-			selectorToChainId[networkParams.selector] = chainIds[i];
+			selectorToChainId[destNetworkParams[i].selector] = chainIds[i];
 		}
 	}
 

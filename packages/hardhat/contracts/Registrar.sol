@@ -8,6 +8,8 @@ import { CCIPReceiver } from "@chainlink/contracts-ccip/src/v0.8/ccip/applicatio
 import { WrappedNft } from "./WrappedNft.sol";
 import { LinkedNft } from "./LinkedNft.sol";
 
+// todo keep the selector of this chain
+
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
  * It also allows the owner to withdraw the Ether in the contract
@@ -17,15 +19,14 @@ contract Registrar is Ownable, CCIPReceiver {
 	address public router;
 
   	struct Network {
-		uint64 selector; 	// Chainlink CCIP chain selector
 		address router; 	// Chainlink CCIP router
+		address registrar; 	// Registrar on another blockchain
 	}
 
 	uint64[] public destNetworkSelectors;
 
-	// A supported networks and their oracle parameters
-	// chain id => Network Param
-	mapping(uint256 => Network) public destNetworks;
+	// selector => Network Param
+	mapping(uint64 => Network) public destNetworks;
 	// Registrar in other blockchains
 	mapping(uint64 => address) public destRegistrars;
 	mapping(uint64 => uint256) public selectorToChainId;
@@ -33,61 +34,40 @@ contract Registrar is Ownable, CCIPReceiver {
 	// For this blockchain it creates a wrapped NFT.
 	//
 	// chain id => nft address => linked nft|wrapped nft.
-	mapping(uint256 => mapping(address => address)) public linkedNfts;
+	mapping(uint64 => mapping(address => address)) public linkedNfts;
 	// nft address => chain id[]
-	mapping(address => uint256[]) public nftSupportedChains;
+	mapping(address => uint64[]) public nftSupportedChains;
 
-	uint256 private tempChainId;
+	uint64 private tempChainId;
 
-	event X_Setup(uint256 chainId, address nftAddress, bytes32 messageId);
-	event Linked(uint256 sourceChainId, address originalAddr, address nftAddress);
-
-	// Make sure that given chain ids are destination chains and not empty.
-	modifier destinationChains(uint256[] memory chainIds) {
-		require(chainIds.length > 0, "at-least one destination");
-		for (uint i = 0; i < chainIds.length; i++) {
-			require(chainIds[i] != block.chainid, "not this chain");
-		}
-		_;
-	}
+	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
+	event Linked(uint64 sourceSelector, address originalAddr, address nftAddress);
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor(
 		address _router,
-		uint256[] memory chainIds,
-		Network[] memory destNetworkParams)
-		Ownable(msg.sender) CCIPReceiver(_router) {
-		require(chainIds.length == destNetworkParams.length, "invalid length");
-		require(chainIds.length >= 1, "at least one chains required");
+		uint64[] memory destSelectors,
+		address[] memory destRouters) Ownable(msg.sender) CCIPReceiver(_router) {
 
-		require(_router != address(0), "empty address");
+		require(destSelectors.length == destRouters.length, "mismatch length");
+
 		router = _router;
+		destNetworkSelectors = destSelectors;
 
-		for (uint64 i = 0; i < chainIds.length; i++) {
-			require(chainIds[i] > 0, "null");
-			require(destNetworkParams[i].router != address(0), "empty address");
-			require(destNetworkParams[i].selector > 0, "empty selector");
-
-			require(destNetworks[chainIds[i]].router == address(0), "duplicate network");
-
-			destNetworks[chainIds[i]] = destNetworkParams[i];
-
-			destNetworkSelectors.push(destNetworkParams[i].selector);
-
-			selectorToChainId[destNetworkParams[i].selector] = chainIds[i];
+		for (uint64 i = 0; i < destSelectors.length; i++) {
+			destNetworks[destSelectors[i]].router = destRouters[i];
 		}
 	}
 
 	/**
 	 * Set's the registrar on other blockchain.
 	 */
-	function setRegistrar(uint256 chainId, address registrar) external onlyOwner {
-		require(chainId != block.chainid, "not to it's own");
-		require(destNetworks[chainId].router != address(0), "unsupported network");
+	function setRegistrar(uint64 selector, address registrar) external onlyOwner {
+		require(destNetworks[selector].router != address(0), "unsupported network");
 		// Enable in production
-		// require(destRegistrars[supportedNetworks[chainId].selector] == address(0), "registrar exists");
+		// require(destNetworks[selector].registrar == address(0), "registrar exists");
 
-		destRegistrars[destNetworks[chainId].selector] = registrar;
+		destNetworks[selector].registrar = registrar;
 	}
 
 	/**
@@ -96,7 +76,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, bytes32 deployTx, uint256[] calldata chainIds) external payable destinationChains(chainIds) {
+	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 		require(nftSupportedChains[nftAddr].length == 0, "call additional setup");
 
@@ -110,14 +90,14 @@ contract Registrar is Ownable, CCIPReceiver {
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
-		linkedNfts[block.chainid][nftAddr] = wrappedNft;
-		nftSupportedChains[nftAddr].push(block.chainid);
+		linkedNfts[1][nftAddr] = wrappedNft;
+		nftSupportedChains[nftAddr].push(1);
 
 		// Pre-calculate the nft addresses
-		for (uint i = 0; i < chainIds.length; i++) {
-			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
-			linkedNfts[chainIds[i]][nftAddr] = calculateLinkedAddress(chainIds[i], nftAddr);
-			nftSupportedChains[nftAddr].push(chainIds[i]);
+		for (uint i = 0; i < selectors.length; i++) {
+			require(linkedNfts[selectors[i]][nftAddr] == address(0), "already linked");
+			linkedNfts[selectors[i]][nftAddr] = calculateLinkedAddress(selectors[i], nftAddr);
+			nftSupportedChains[nftAddr].push(selectors[i]);
 		}
 
 		// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
@@ -125,12 +105,12 @@ contract Registrar is Ownable, CCIPReceiver {
 		bytes memory data = abi.encodeWithSignature("xSetup(address,address,uint256[],string memory,string memory)",
 			nftAddr, wrappedNft, nftSupportedChains[nftAddr], WrappedNft(wrappedNft).originalName(), WrappedNft(wrappedNft).originalSymbol());
 		uint256 totalFee = 0;
-		uint256[] memory fees = new uint256[](chainIds.length);
-		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](chainIds.length);
+		uint256[] memory fees = new uint256[](selectors.length);
+		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](selectors.length);
 
-		for (uint256 i = 0; i < chainIds.length; i++) {
+		for (uint256 i = 0; i < selectors.length; i++) {
 			messages[i] = Client.EVM2AnyMessage({
-				receiver: abi.encode(destRegistrars[destNetworks[chainIds[i]].selector]),
+				receiver: abi.encode(destNetworks[selectors[i]].registrar),
 				data: data,
 				tokenAmounts: new Client.EVMTokenAmount[](0),
 				extraArgs: "",
@@ -138,7 +118,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			});
 
 			fees[i] = IRouterClient(router).getFee(
-				destNetworks[chainIds[i]].selector,
+				selectors[i],
 				messages[i]
 			);
 
@@ -148,13 +128,13 @@ contract Registrar is Ownable, CCIPReceiver {
 		}
 		require(msg.value >= totalFee, "insufficient balance");
 
-		for (uint256 i = 0; i < chainIds.length; i++) {
+		for (uint256 i = 0; i < selectors.length; i++) {
 			bytes32 messageId = IRouterClient(router).ccipSend{value: fees[i]}(
-				destNetworks[chainIds[i]].selector,
+				selectors[i],
 				messages[i]
 			);
 
-			emit X_Setup(chainIds[i], nftAddr, messageId);
+			emit X_Setup(selectors[i], nftAddr, messageId);
 		}
 	}
 
@@ -166,7 +146,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		address sourceRegistrar = abi.decode(message.sender, (address));
 		require(destRegistrars[message.sourceChainSelector] == sourceRegistrar, "not registrar");
 
-		tempChainId = sourceChainId;
+		tempChainId = message.sourceChainSelector;
 		(bool success, ) = address(this).call(message.data);
 		tempChainId = 0;
 		require(success);
@@ -174,7 +154,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	function xSetup(
 		address nftAddr,
-		address wrappedNft, uint256[] calldata chainIds,
+		address wrappedNft, uint64[] calldata selectors,
 		string memory name,
 		string memory symbol
 	) private {
@@ -188,14 +168,17 @@ contract Registrar is Ownable, CCIPReceiver {
 		address deployedAddr;
 
 		// Pre-calculate the nft addresses
-		for (uint i = 0; i < chainIds.length; i++) {
-			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
-			linkedNfts[chainIds[i]][nftAddr] = calculateLinkedAddress(chainIds[i], nftAddr);
-			nftSupportedChains[nftAddr].push(chainIds[i]);
+		for (uint i = 0; i < selectors.length; i++) {
+			require(linkedNfts[selectors[i]][nftAddr] == address(0), "already linked");
+			linkedNfts[selectors[i]][nftAddr] = calculateLinkedAddress(selectors[i], nftAddr);
+			nftSupportedChains[nftAddr].push(selectors[i]);
 
-			if (chainIds[i] == block.chainid) {
+			// need to use this smart contract's selector
+			// need to use this smart contract's selector
+			// perhaps use the sender instead the blockchain? no, they could be identical
+			if (selectors[i] == block.chainid) {
 				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, name, symbol));
-				require(deployedAddr == linkedNfts[chainIds[i]][nftAddr], "mismatch");
+				require(deployedAddr == linkedNfts[selectors[i]][nftAddr], "mismatch");
 			}
 		}
 
@@ -205,19 +188,12 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// Todo add xSetupAdditional()
 
-	// Returns parameters needed to execute a cross-chain transfer
-	// @chainId the target chain id
-	// @returns destination selector
-	function chainIdToSelector(uint256 chainId) public view returns(uint64) {
-		return destNetworks[chainId].selector;
-	}
-
-	function isValidRegistrar(uint256 chainId, address registrar) public view returns(bool) {
-		return destRegistrars[destNetworks[chainId].selector] == registrar;
+	function isValidDestRegistrar(uint64 selector, address registrar) public view returns(bool) {
+		return destNetworks[selector].registrar == registrar;
 	}
 
 
-// Returns true if the nft is Ownable and admin is the owner.
+	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
 	function getNftAdmin(address nftAddr, address admin) public view returns (bool) {
 		Ownable ownable = Ownable(nftAddr);
@@ -248,26 +224,10 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 
-	function calculateAddress(address nftAddress) external view returns(address) {
-		bytes32 salt = generateSalt(address(this), nftAddress);
-
-		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
-			bytes1(0xff),
-			address(this), // address of the smartcontract
-			salt,
-			keccak256(abi.encodePacked(
-				type(WrappedNft).creationCode,
-				abi.encode(nftAddress)
-			))
-		)))));
-
-		return predictedAddress;
-	}
-
 	// Testing
-	function calculateAddress(uint chainId, address nftAddress) public view returns(address) {
-		require(destRegistrars[destNetworks[chainId].selector] != address(0), "no registrar");
-		address registrar = destRegistrars[destNetworks[chainId].selector];
+	function calculateAddress(uint64 selector, address nftAddress) public view returns(address) {
+		require(destNetworks[selector].registrar != address(0), "no registrar");
+		address registrar = destNetworks[selector].registrar;
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -283,9 +243,9 @@ contract Registrar is Ownable, CCIPReceiver {
 		return predictedAddress;
 	}
 
-	function calculateLinkedAddress(uint chainId, address nftAddress) public view returns(address) {
-		require(destRegistrars[destNetworks[chainId].selector] != address(0), "no registrar");
-		address registrar = destRegistrars[destNetworks[chainId].selector];
+	function calculateLinkedAddress(uint64 selector, address nftAddress) public view returns(address) {
+		require(destNetworks[selector].registrar != address(0), "no registrar");
+		address registrar = destNetworks[selector].registrar;
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(

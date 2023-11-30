@@ -29,7 +29,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     mapping(uint256 => uint256) public blockNumbers;
 
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
-    event X_Bridge(uint256 chainId, uint256 nftId, address owner, bytes32 messageId);
+    event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
 
     modifier nftOwner(uint256 nftId) {
         require(source.ownerOf(nftId) == msg.sender, "not owner");
@@ -37,8 +37,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         _;
     }
 
-    modifier validDestination(uint256 chainId) {
-        require(registrar.linkedNfts(chainId, address(source)) != address(0), "unsupported chain");
+    modifier validDestination(uint64 selector) {
+        require(registrar.linkedNfts(selector, address(source)) != address(0), "unsupported chain");
         _;
     }
 
@@ -116,15 +116,14 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     //
     ////////////////////////////////////////////////////////////////////////////
 
-    function bridge(uint256 nftId, uint256 chainId) external nftOwner(nftId) validDestination(chainId) payable {
+    function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
         require(ownerOf(nftId) == address(0), "wrapped nft exists");
         source.safeTransferFrom(msg.sender, address(this), nftId);
         require(source.ownerOf(nftId) == address(this), "transfer failed");
 
         string memory uri = source.tokenURI(nftId);
 
-        address linkedAddr = registrar.linkedNfts(chainId, address(source));
-        uint64 chainSelector = registrar.chainIdToSelector(chainId);
+        address linkedAddr = registrar.linkedNfts(chainSelector, address(source));
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(linkedAddr),
@@ -148,7 +147,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         _mint(msg.sender, nftId);
         _setTokenURI(nftId, uri);
 
-        emit X_Bridge(chainId, nftId, msg.sender, messageId);
+        emit X_Bridge(chainSelector, nftId, msg.sender, messageId);
     }
 
     // Only a router can call it.
@@ -166,10 +165,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
-        uint sourceChainId = registrar.selectorToChainId(message.sourceChainSelector);
-        require(sourceChainId > 0 && sourceChainId != block.chainid, "unsupported source");
         address sourceRegistrar = abi.decode(message.sender, (address));
-        require(registrar.isValidRegistrar(sourceChainId, sourceRegistrar), "not registrar");
+        require(registrar.isValidDestRegistrar(message.sourceChainSelector, sourceRegistrar), "not registrar");
 
         (bool success, ) = address(this).call(message.data);
         require(success);

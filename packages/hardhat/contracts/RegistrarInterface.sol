@@ -7,8 +7,6 @@ pragma solidity >=0.8.0 <0.9.0;
  * @author Medet Ahmetson
  */
 interface RegistrarInterface {
-	function linkedNfts(uint256, address) external view returns (address);
-	function chainIdToSelector(uint256) external view returns(uint64);
-	function selectorToChainId(uint64) external view returns(uint256);
-	function isValidRegistrar(uint256, address) external view returns(bool);
+	function linkedNfts(uint64, address) external view returns (address);
+	function isValidDestRegistrar(uint64, address) external view returns(bool);
 }

@@ -109,7 +109,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr));
+		address wrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, supportedNetworks[block.chainid].router));
 
 		// First let's deploy the wrappedNft
 		// Deploy the wrapped nft.
@@ -215,7 +215,12 @@ contract Registrar is Ownable, CCIPReceiver {
 		return supportedNetworks[chainId].selector;
 	}
 
-	// Returns true if the nft is Ownable and admin is the owner.
+	function isValidRegistrar(uint256 chainId, address registrar) public view returns(bool) {
+		return supportedNetworks[chainId].registrar == registrar;
+	}
+
+
+// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
 	function getNftAdmin(address nftAddr, address admin) public view returns (bool) {
 		Ownable ownable = Ownable(nftAddr);

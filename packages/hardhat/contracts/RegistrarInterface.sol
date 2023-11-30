@@ -16,4 +16,6 @@ import { LinkedNft } from "./LinkedNft.sol";
 interface RegistrarInterface {
 	function linkedNfts(uint256, address) external view returns (address);
 	function chainIdToSelector(uint256) external view returns(uint64);
+	function selectorToChainId(uint64) external view returns(uint256);
+	function isValidRegistrar(uint256, address) external view returns(bool);
 }

@@ -90,11 +90,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router, selectors);
 		require(wrappedNft.code.length == 0, "already set up");
 
-		// todo make sure that name and symbol passes correctly.
-		// perhaps use a library for originalName and originalSymbol instead relying on wrappedNft
-		// args = nftAddr, wrappedNft, nftSupportedChains
-		// todo make sure to re-calculate the wrapped nft in the destination.
-		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string memory,string memory)",
+		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[] memory,string memory,string memory)",
 			nftAddr, selectors, wrappedName, wrappedSymbol);
 		uint256 totalFee = 0;
 		uint256[] memory fees = new uint256[](selectors.length);

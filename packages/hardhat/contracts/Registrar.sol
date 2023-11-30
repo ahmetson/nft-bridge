@@ -171,7 +171,7 @@ contract Registrar is Ownable {
 	}
 
 	// Testing
-	function calculateAddress(uint chainId, address nftAddress) external view returns(address) {
+	function calculateAddress(uint chainId, address nftAddress) public view returns(address) {
 		require(supportedNetworks[chainId].registrar != address(0), "no registrar");
 		address registrar = supportedNetworks[chainId].registrar;
 		bytes32 salt = generateSalt(registrar, nftAddress);
@@ -188,4 +188,23 @@ contract Registrar is Ownable {
 
 		return predictedAddress;
 	}
+
+	function calculateLinkedAddress(uint chainId, address nftAddress) public view returns(address) {
+		require(supportedNetworks[chainId].registrar != address(0), "no registrar");
+		address registrar = supportedNetworks[chainId].registrar;
+		bytes32 salt = generateSalt(registrar, nftAddress);
+
+		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
+			bytes1(0xff),
+			registrar, // address of the smartcontract
+			salt,
+			keccak256(abi.encodePacked(
+				type(LinkedNft).creationCode,
+				abi.encode(nftAddress)
+			))
+		)))));
+
+		return predictedAddress;
+	}
+
 }

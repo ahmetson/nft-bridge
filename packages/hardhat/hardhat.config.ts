@@ -47,7 +47,7 @@ const config: HardhatUserConfig = {
       accounts: [deployerPrivateKey],
     },
     sepolia: {
-      url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
+      url: `https://ethereum-sepolia.publicnode.com`,
       accounts: [deployerPrivateKey],
     },
     goerli: {
@@ -75,7 +75,7 @@ const config: HardhatUserConfig = {
       accounts: [deployerPrivateKey],
     },
     polygonMumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${providerApiKey}`,
+      url: `https://polygon-mumbai-bor.publicnode.com`,
       accounts: [deployerPrivateKey],
     },
     polygonZkEvm: {

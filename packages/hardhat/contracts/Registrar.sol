@@ -26,6 +26,7 @@ contract Registrar is Ownable {
 	// A supported networks and their oracle parameters
 	// chain id => Network Param
 	mapping(uint256 => NetworkParams) public supportedNetworks;
+	mapping(uint64 => uint256) public selectorToChainId;
 	// The linked nft addresses across blockchains.
 	// For this blockchain it creates a wrapped NFT.
 	//
@@ -55,6 +56,7 @@ contract Registrar is Ownable {
 
 		supportedNetworks[block.chainid] = networkParams;
 		supportedChainIds.push(block.chainid);
+		selectorToChainId[networkParams.selector] = block.chainid;
 
 		for (uint64 i = 0; i < chainIds.length; i++) {
 			require(chainIds[i] > 0, "null");
@@ -65,6 +67,7 @@ contract Registrar is Ownable {
 
 			supportedNetworks[chainIds[i]] = destNetworkParams[i];
 			supportedChainIds.push(chainIds[i]);
+			selectorToChainId[networkParams.selector] = chainIds[i];
 		}
 
 		router = IRouterClient(networkParams.router);
@@ -105,19 +108,16 @@ contract Registrar is Ownable {
 		linkedNfts[block.chainid][nftAddr] = wrappedNft;
 		nftSupportedChains[nftAddr].push(block.chainid);
 
+		// Pre-calculate the nft addresses
 		for (uint i = 0; i < chainIds.length; i++) {
 			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
-
-			address linkedAddr = calculateLinkedAddress(chainIds[i], nftAddr);
-			linkedNfts[chainIds[i]][nftAddr] = linkedAddr;
-
-			// We can optimize it by defining once, then use i as an offset.
+			linkedNfts[chainIds[i]][nftAddr] = calculateLinkedAddress(chainIds[i], nftAddr);
 			nftSupportedChains[nftAddr].push(chainIds[i]);
 		}
 
 		// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
-		bytes memory data = abi.encodeWithSignature("xSetup(uint256,address,address,uint256[])",
-			block.chainid, nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
+		// todo make sure to re-calculate the wrapped nft in the destination.
+		bytes memory data = abi.encodeWithSignature("xSetup(address,address,uint256[])", nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
 		uint256 totalFee = 0;
 		uint256[] memory fees = new uint256[](chainIds.length);
 		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](chainIds.length);

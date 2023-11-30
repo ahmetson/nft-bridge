@@ -36,7 +36,10 @@ contract Registrar is Ownable, CCIPReceiver {
 	// nft address => chain id[]
 	mapping(address => uint256[]) public nftSupportedChains;
 
+	uint256 private tempChainId;
+
 	event X_Setup(uint256 chainId, address nftAddress, bytes32 messageId);
+	event Linked(uint256 sourceChainId, address originalAddr, address nftAddress);
 
 	// Make sure that given chain ids are destination chains and not empty.
 	modifier destinationChains(uint256[] memory chainIds) {
@@ -48,8 +51,11 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 	// Todo get chainlink receiver and pass networkParams.router
-	constructor(NetworkParams memory networkParams, uint256[] memory chainIds, NetworkParams[] memory destNetworkParams)
-	Ownable(msg.sender) CCIPReceiver(networkParams.router) {
+	constructor(
+		NetworkParams memory networkParams,
+		uint256[] memory chainIds,
+		NetworkParams[] memory destNetworkParams)
+		Ownable(msg.sender) CCIPReceiver(networkParams.router) {
 		require(chainIds.length == destNetworkParams.length, "invalid length");
 		require(chainIds.length >= 1, "at least one chains required");
 
@@ -201,11 +207,37 @@ contract Registrar is Ownable, CCIPReceiver {
 		address sourceRegistrar = abi.decode(message.sender, (address));
 		require(supportedNetworks[sourceChainId].registrar == sourceRegistrar, "not registrar");
 
+		tempChainId = sourceChainId;
 		(bool success, ) = address(this).call(message.data);
+		tempChainId = 0;
 		require(success);
 	}
 
-	// Todo add xSetup to be called by the oracle.
+	function xSetup(address nftAddr, address wrappedNft, uint256[] calldata chainIds) private {
+		wrappedNft = calculateAddress(tempChainId, nftAddr);
+
+		// First let's deploy the wrappedNft
+		// Deploy the wrapped nft.
+		linkedNfts[tempChainId][nftAddr] = wrappedNft;
+		nftSupportedChains[nftAddr].push(tempChainId);
+
+		address deployedAddr;
+
+		// Pre-calculate the nft addresses
+		for (uint i = 0; i < chainIds.length; i++) {
+			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
+			linkedNfts[chainIds[i]][nftAddr] = calculateLinkedAddress(chainIds[i], nftAddr);
+			nftSupportedChains[nftAddr].push(chainIds[i]);
+
+			if (chainIds[i] == block.chainid) {
+				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, "", ""));
+				require(deployedAddr == linkedNfts[chainIds[i]][nftAddr], "mismatch");
+			}
+		}
+
+		require(deployedAddr != address(0), "no this blockchain");
+		emit Linked(tempChainId, nftAddr, deployedAddr);
+	}
 
 	// Todo add xSetupAdditional()
 

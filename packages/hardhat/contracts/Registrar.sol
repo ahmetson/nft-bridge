@@ -17,6 +17,7 @@ import { LinkedNft } from "./LinkedNft.sol";
  */
 contract Registrar is Ownable, CCIPReceiver {
 	address public router;
+	uint64 public networkSelector;
 
   	struct Network {
 		address router; 	// Chainlink CCIP router
@@ -44,7 +45,8 @@ contract Registrar is Ownable, CCIPReceiver {
 	event Linked(uint64 sourceSelector, address originalAddr, address nftAddress);
 
 	// Todo get chainlink receiver and pass networkParams.router
-	constructor(
+	constructor (
+		uint64 _networkSelector,
 		address _router,
 		uint64[] memory destSelectors,
 		address[] memory destRouters) Ownable(msg.sender) CCIPReceiver(_router) {
@@ -52,6 +54,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(destSelectors.length == destRouters.length, "mismatch length");
 
 		router = _router;
+		networkSelector = _networkSelector;
 		destNetworkSelectors = destSelectors;
 
 		for (uint64 i = 0; i < destSelectors.length; i++) {
@@ -100,7 +103,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			nftSupportedChains[nftAddr].push(selectors[i]);
 		}
 
-		// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
+		// args = nftAddr, wrappedNft, nftSupportedChains
 		// todo make sure to re-calculate the wrapped nft in the destination.
 		bytes memory data = abi.encodeWithSignature("xSetup(address,address,uint256[],string memory,string memory)",
 			nftAddr, wrappedNft, nftSupportedChains[nftAddr], WrappedNft(wrappedNft).originalName(), WrappedNft(wrappedNft).originalSymbol());
@@ -141,8 +144,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	function _ccipReceive(
 		Client.Any2EVMMessage memory message
 	) internal override {
-		uint sourceChainId = selectorToChainId[message.sourceChainSelector];
-		require(sourceChainId > 0 && sourceChainId != block.chainid, "unsupported source");
+		require(message.sourceChainSelector != networkSelector, "called from same network");
 		address sourceRegistrar = abi.decode(message.sender, (address));
 		require(destRegistrars[message.sourceChainSelector] == sourceRegistrar, "not registrar");
 
@@ -176,7 +178,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			// need to use this smart contract's selector
 			// need to use this smart contract's selector
 			// perhaps use the sender instead the blockchain? no, they could be identical
-			if (selectors[i] == block.chainid) {
+			if (selectors[i] == networkSelector) {
 				deployedAddr = address(new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, name, symbol));
 				require(deployedAddr == linkedNfts[selectors[i]][nftAddr], "mismatch");
 			}

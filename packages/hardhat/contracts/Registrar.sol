@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 
 /**
@@ -11,6 +11,8 @@ import { WrappedNft } from "./WrappedNft.sol";
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable {
+	IRouterClient private router;
+
 	struct NetworkParams {
 		uint64 selector; 	// Chainlink CCIP chain selector
 		address router; 	// Chainlink CCIP router
@@ -54,6 +56,8 @@ contract Registrar is Ownable {
 
 			supportedNetworks[chainIds[i]] = destNetworkParams[i];
 		}
+
+		router = IRouterClient(networkParams.router);
 	}
 
 	/**

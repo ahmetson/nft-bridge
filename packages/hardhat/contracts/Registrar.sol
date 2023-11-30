@@ -6,13 +6,14 @@ import { IRouterClient } from "@chainlink/contracts-ccip/src/v0.8/ccip/interface
 import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 import { LinkedNft } from "./LinkedNft.sol";
+import { CCIPReceiver } from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
  * It also allows the owner to withdraw the Ether in the contract
  * @author Medet Ahmetson
  */
-contract Registrar is Ownable {
+contract Registrar is Ownable, CCIPReceiver {
 	IRouterClient private router;
 
 	struct NetworkParams {
@@ -47,7 +48,8 @@ contract Registrar is Ownable {
 	}
 
 	// Todo get chainlink receiver and pass networkParams.router
-	constructor(NetworkParams memory networkParams, uint256[] memory chainIds, NetworkParams[] memory destNetworkParams) Ownable(msg.sender) {
+	constructor(NetworkParams memory networkParams, uint256[] memory chainIds, NetworkParams[] memory destNetworkParams)
+	Ownable(msg.sender) CCIPReceiver(networkParams.router) {
 		require(chainIds.length == destNetworkParams.length, "invalid length");
 		require(chainIds.length >= 1, "at least one chains required");
 
@@ -189,6 +191,18 @@ contract Registrar is Ownable {
 
 		// call the sending
 
+	}
+
+	function _ccipReceive(
+		Client.Any2EVMMessage memory message
+	) internal override {
+		uint sourceChainId = selectorToChainId[message.sourceChainSelector];
+		require(sourceChainId > 0 && sourceChainId != block.chainid, "unsupported source");
+		address sourceRegistrar = abi.decode(message.sender, (address));
+		require(supportedNetworks[sourceChainId].registrar == sourceRegistrar, "not registrar");
+
+		(bool success, ) = address(this).call(message.data);
+		require(success);
 	}
 
 	// Todo add xSetup to be called by the oracle.

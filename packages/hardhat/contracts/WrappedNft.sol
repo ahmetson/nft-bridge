@@ -5,8 +5,9 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721URIStorage } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
-import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import { IRouterClient } from "./chainlink/ccip/interfaces/IRouterClient.sol";
+import { Client } from "./chainlink/ccip/libraries/Client.sol";
+import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
 import "./RegistrarInterface.sol";
 
 /**
@@ -15,10 +16,11 @@ import "./RegistrarInterface.sol";
  *
  * todo Unwrapping Wrapped NFTs is not possible in this version.
  */
-contract WrappedNft is ERC721URIStorage, IERC721Receiver {
+contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     ERC721 public source;
 
     RegistrarInterface public registrar;
+    address public router;
 
     string private _name;
     string private _symbol;
@@ -43,7 +45,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     /**
      * @param _source is the original NFT that is wrapped to bridge
      */
-    constructor(address _source) ERC721("", "") {
+    constructor(address _source, address _router) ERC721("", "") CCIPReceiver(_router) {
         require(_source != address(0), "ZERO_ADDRESS");
 
         source = ERC721(_source);
@@ -150,14 +152,28 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
     }
 
     // Only a router can call it.
-    function unBridge(uint256 nftId) internal {
-
+    function unBridge(uint256 nftId, address to) internal {
+        _burn(nftId);
+        source.safeTransferFrom(address(this), to, nftId);
     }
 
     // Call it if it's the owner, and it will withdraw from other blockchain.
+    // Make it external so that it's not called by the oracles.
     //    function unBridge(uint256 nftId, uint256 chainId) external {
 
     //}
+
+    function _ccipReceive(
+        Client.Any2EVMMessage memory message
+    ) internal override {
+        uint sourceChainId = registrar.selectorToChainId(message.sourceChainSelector);
+        require(sourceChainId > 0 && sourceChainId != block.chainid, "unsupported source");
+        address sourceRegistrar = abi.decode(message.sender, (address));
+        require(registrar.isValidRegistrar(sourceChainId, sourceRegistrar), "not registrar");
+
+        (bool success, ) = address(this).call(message.data);
+        require(success);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     //
@@ -198,5 +214,12 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver {
         //success
         emit NftReceived(operator, from, tokenId, data);
         return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721URIStorage, CCIPReceiver) returns (bool) {
+        if (ERC721URIStorage.supportsInterface(interfaceId)) {
+            return true;
+        }
+        return CCIPReceiver.supportsInterface(interfaceId);
     }
 }

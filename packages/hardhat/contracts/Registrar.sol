@@ -2,7 +2,8 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import { IRouterClient } from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 import { LinkedNft } from "./LinkedNft.sol";
 
@@ -33,7 +34,7 @@ contract Registrar is Ownable {
 	// nft address => chain id[]
 	mapping(address => uint256[]) public nftSupportedChains;
 
-	event NftAddress(uint256 chainId, address source, address target);
+	event X_Setup(uint256 chainId, address nftAddress, bytes32 messageId);
 
 	// Make sure that given chain ids are destination chains and not empty.
 	modifier destinationChains(uint256[] memory chainIds) {
@@ -97,41 +98,12 @@ contract Registrar is Ownable {
 			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
 		}
 
-		bytes32 salt = generateSalt(address(this), nftAddr);
-
 		address wrappedNft = calculateAddress(block.chainid, nftAddr);
 
 		// First let's deploy the wrappedNft
-			// Deploy the wrapped nft.
-			linkedNfts[block.chainid][nftAddr] = wrappedNft;
-			nftSupportedChains[nftAddr].push(block.chainid);
-
-//			uint64 destinationChainSelector;
-//			address receiver;
-//			PayFeesIn payFeesIn;
-//
-//			Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-//				receiver: abi.encode(receiver),
-//				data: abi.encodeWithSignature("mint(address)", msg.sender),
-//				tokenAmounts: new Client.EVMTokenAmount[](0),
-//				extraArgs: "",
-//				feeToken: address(0)
-//			});
-//
-//			uint256 fee = IRouterClient(i_router).getFee(
-//				destinationChainSelector,
-//				message
-//			);
-//
-//			require(fee > 0, "contract error");
-//			require(msg.value >= fee, "insufficient balance");
-//
-//			bytes32 messageId = IRouterClient(i_router).ccipSend{value: fee}(
-//				destinationChainSelector,
-//				message
-//			);
-//
-//			emit MessageSent(messageId);
+		// Deploy the wrapped nft.
+		linkedNfts[block.chainid][nftAddr] = wrappedNft;
+		nftSupportedChains[nftAddr].push(block.chainid);
 
 		for (uint i = 0; i < chainIds.length; i++) {
 			require(linkedNfts[chainIds[i]][nftAddr] == address(0), "already linked");
@@ -146,20 +118,40 @@ contract Registrar is Ownable {
 		// args = block.chainid, nftAddr, wrappedNft, nftSupportedChains
 		bytes memory data = abi.encodeWithSignature("xSetup(uint256,address,address,uint256[])",
 			block.chainid, nftAddr, wrappedNft, nftSupportedChains[nftAddr]);
+		uint256 totalFee = 0;
+		uint256[] memory fees = new uint256[](chainIds.length);
+		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](chainIds.length);
+
 		for (uint256 i = 0; i < chainIds.length; i++) {
-			// send the data
+			messages[i] = Client.EVM2AnyMessage({
+				receiver: abi.encode(supportedNetworks[chainIds[i]].registrar),
+				data: data,
+				tokenAmounts: new Client.EVMTokenAmount[](0),
+				extraArgs: "",
+				feeToken: address(0)
+			});
+
+			fees[i] = router.getFee(
+				supportedNetworks[chainIds[i]].selector,
+				messages[i]
+			);
+
+			// duplicate add more fee
+			require(fees[i] > 0, "contract error");
+			totalFee += fees[i];
+		}
+		require(msg.value >= totalFee, "insufficient balance");
+
+		for (uint256 i = 0; i < chainIds.length; i++) {
+			bytes32 messageId = router.ccipSend{value: fees[i]}(
+				supportedNetworks[chainIds[i]].selector,
+				messages[i]
+			);
+
+			emit X_Setup(chainIds[i], nftAddr, messageId);
 		}
 
-		// for previously deployed contracts, submit addition of a new network.
-		// for new contracts submit all.
-
-		// Generate the arguments. Then pass the wrappedNft and list of chain ids.
-		// [sourceChainId, nftAddr, wrappedAddr, destChainIds]
-		// Todo Deploy linked nft. Pass the nft address, deployed address.
-
-		// Precompute the address
-		// todo let's make it after sending the data
-		address deployedWrappedNft = address(new WrappedNft{salt: salt}(nftAddr));
+		address deployedWrappedNft = address(new WrappedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr));
 		require(deployedWrappedNft == wrappedNft, "mismatch");
 	}
 

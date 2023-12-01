@@ -31,11 +31,13 @@ contract Registrar is Ownable, CCIPReceiver {
 	mapping(uint64 => Network) public destNetworks;
 	// original nft => owner|creator
 	mapping(address => address) public nftAdmin;
+	mapping(address => address) public wrappers; // no need to pre-compute everytime
 
 	uint64 private tempChainId;
 
 	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
-	event Linked(uint64 sourceSelector, address originalAddr, address nftAddress);
+	event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
+	event Linked(address originalAddr, address nftAddress);
 
 	modifier onlyNftAdmin(address nftAddr) {
 		require(msg.sender == nftAdmin[nftAddr], "not admin");
@@ -95,8 +97,10 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(wrappedNft.code.length > 0, "not created");
 
 		created.setSelector(networkSelector);
+		created.setupOne(networkSelector, wrappedNft);
 
 		nftAdmin[nftAddr] = msg.sender;
+		wrappers[nftAddr] = wrappedNft;
 	}
 
 	/**
@@ -110,54 +114,89 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, uint64[] calldata selectors) external onlyNftAdmin(nftAddr) payable {
+	function setup(address nftAddr, uint64 destSelector) external onlyNftAdmin(nftAddr) payable {
 		require(nftAddr.code.length > 0, "not_deployed");
-
-		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
-		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
-
-		// onlyNftAdmin modifier ensures that it's created.
-		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
+		require(destNetworks[destSelector].router != address(0), "unsupported");
 
 		// add to the wrappedNft the selectors.
-//		WrappedNft wrappedNft = WrappedNft(wrappedNftAddr);
+		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
+		require(wrappedNft.linkedNfts(destSelector) == address(0), "already linked");
 
-		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string,string)",
-			nftAddr, selectors, wrappedName, wrappedSymbol);
-		uint256 totalFee = 0;
-		uint256[] memory fees = new uint256[](selectors.length);
-		Client.EVM2AnyMessage[] memory messages = new Client.EVM2AnyMessage[](selectors.length);
+		string memory wrappedName = wrappedNft.name();
+		string memory wrappedSymbol = wrappedNft.symbol();
 
-		for (uint256 i = 0; i < selectors.length; i++) {
-			messages[i] = Client.EVM2AnyMessage({
-				receiver: abi.encode(destNetworks[selectors[i]].registrar),
-				data: data,
+		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
+
+		// todo
+		// get all linked nfts in wrapped nft.
+		// then send to all nfts a new added nft. setupOne(networkId, nftAddress); -> broadcastSetupOne
+
+		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+				receiver: abi.encode(destNetworks[destSelector].registrar),
+				data: abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
+						nftAddr, wrappedName, wrappedSymbol, selectors, linkedNftAddrs),
+				tokenAmounts: new Client.EVMTokenAmount[](0),
+				extraArgs: "",
+				feeToken: address(0)
+		});
+
+		uint256 fee = IRouterClient(router).getFee(
+				destSelector,
+				message
+		);
+
+		// duplicate add more fee
+		require(msg.value >= fee, "insufficient balance");
+
+		bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
+			destSelector,
+			message
+		);
+
+		emit X_Setup(destSelector, nftAddr, messageId);
+
+		address linkedNftAddr = precomputeLinkedNft(destNetworks[destSelector].registrar, wrappedName, wrappedSymbol, nftAddr, router);
+
+		uint256 remaining = msg.value - fee;
+		if (selectors.length > 1) {
+			remaining = broadcastSetupOne(remaining, destSelector, linkedNftAddr, selectors, linkedNftAddrs);
+		}
+		// fund back additional money
+		if (remaining > 0) {
+			(bool success, ) = msg.sender.call{ value: remaining }("");
+			require(success, "Failed to send Ether back");
+		}
+
+		wrappedNft.setupOne(destSelector, linkedNftAddr);
+	}
+
+	function broadcastSetupOne(uint256 remainingFee, uint64 destSelector, address linkedNftAddr, uint64[] memory selectors, address[] memory linkedNftAddrs) internal returns(uint256) {
+		// the first selector is this contract.
+		for (uint256 i = 1; i < selectors.length; i++) {
+			Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+				receiver: abi.encode(linkedNftAddrs[i]),
+				data: abi.encodeWithSignature("xSetupOne(uint64,address)", destSelector, linkedNftAddr),
 				tokenAmounts: new Client.EVMTokenAmount[](0),
 				extraArgs: "",
 				feeToken: address(0)
 			});
 
-			fees[i] = IRouterClient(router).getFee(
+			uint256 fee = IRouterClient(router).getFee(
 				selectors[i],
-				messages[i]
+				message
+			);
+			require(remainingFee >= fee, "insufficient linting balance");
+			remainingFee -= fee;
+
+			bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
+				selectors[i],
+				message
 			);
 
-			// duplicate add more fee
-			require(fees[i] > 0, "contract error");
-			totalFee += fees[i];
-		}
-		require(msg.value >= totalFee, "insufficient balance");
-
-		for (uint256 i = 0; i < selectors.length; i++) {
-			bytes32 messageId = IRouterClient(router).ccipSend{value: fees[i]}(
-				selectors[i],
-				messages[i]
-			);
-
-			emit X_Setup(selectors[i], nftAddr, messageId);
+			emit X_SetupOne(selectors[i], linkedNftAddrs[i], messageId);
 		}
 
-		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
+		return remainingFee;
 	}
 
 	function _ccipReceive(
@@ -175,27 +214,19 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	function xSetup(
 		address nftAddr,
-		uint64[] memory selectors,
 		string memory name,
-		string memory symbol
+		string memory symbol,
+		uint64[] memory selectors,
+		address[] memory linkedNftAddrs
 	) private {
-		address deployedAddr;
+		LinkedNft linkedNft = new LinkedNft{salt: generateSalt(address(this), nftAddr)}(name, symbol, nftAddr, router);
+		linkedNft.setSelector(networkSelector);
+		// first network selector is the original chain. it must be same everywhere.
+		// so let's keep the order in all blockchains.
+		linkedNft.setup(selectors, linkedNftAddrs);
+		linkedNft.setupOne(networkSelector, address(linkedNft));
 
-		// Pre-calculate the nft addresses
-		for (uint i = 0; i < selectors.length; i++) {
-			// need to use this smart contract's selector
-			// need to use this smart contract's selector
-			// perhaps use the sender instead the blockchain? no, they could be identical
-			if (selectors[i] != networkSelector) {
-				continue;
-			}
-
-			new LinkedNft{salt: generateSalt(address(this), nftAddr)}(nftAddr, router, name, symbol, selectors);
-			break;
-		}
-
-		require(deployedAddr != address(0), "no this blockchain");
-		emit Linked(tempChainId, nftAddr, deployedAddr);
+		emit Linked(nftAddr, address(linkedNft));
 	}
 
 	// Todo add xSetupAdditional()
@@ -258,7 +289,10 @@ contract Registrar is Ownable, CCIPReceiver {
 		return predictedAddress;
 	}
 
-	function calculateLinkedAddress(address registrar, address nftAddress) public pure returns(address) {
+	function precomputeLinkedNft(address registrar, string memory _name,
+		string memory _symbol,
+		address nftAddress,
+		address _router) public pure returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -267,7 +301,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			salt,
 			keccak256(abi.encodePacked(
 				type(LinkedNft).creationCode,
-				abi.encode(nftAddress)
+				abi.encode(_name, _symbol, nftAddress, _router)
 			))
 		)))));
 

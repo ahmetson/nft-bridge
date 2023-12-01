@@ -21,6 +21,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     RegistrarInterface public registrar;
     address public router;
+    uint64 public selector;
 
     // The linked nft addresses across blockchains.
     // For this blockchain it creates a wrapped NFT.
@@ -37,8 +38,16 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         _;
     }
 
-    modifier validDestination(uint64 selector) {
-        require(registrar.linkedNfts(selector, address(source)) != address(0), "unsupported chain");
+    modifier validDestination(uint64 _selector) {
+        require(_selector != selector, "to itself");
+        bool found = false;
+        for (uint256 i = 0; i < nftSupportedChains.length; i++) {
+            if (nftSupportedChains[i] == _selector) {
+                found = true;
+                break;
+            }
+        }
+        require(found, "unsupported network");
         _;
     }
 
@@ -70,10 +79,10 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
         require(ownerOf(nftId) == address(0), "wrapped nft exists");
         source.safeTransferFrom(msg.sender, address(this), nftId);
-        require(source.ownerOf(nftId) == address(this), "transfer failed");
 
         string memory uri = source.tokenURI(nftId);
 
+        // pre-compute the linked address
         address linkedAddr = registrar.linkedNfts(chainSelector, address(source));
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({

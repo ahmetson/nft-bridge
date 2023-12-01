@@ -58,16 +58,16 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         string memory _name,
         string memory _symbol,
         address _source,
-        address _router,
-        uint64[] memory _destSelectors) ERC721(_name, _symbol) CCIPReceiver(_router) {
+        address _router) ERC721(_name, _symbol) CCIPReceiver(_router) {
         require(_source != address(0), "ZERO_ADDRESS");
 
         source = ERC721(_source);
 
-        nftSupportedChains = _destSelectors;
-
         registrar = RegistrarInterface(msg.sender);
     }
+
+    // todo add registerNetwork
+    // todo add setSelector
 
 
     ////////////////////////////////////////////////////////////////////////////

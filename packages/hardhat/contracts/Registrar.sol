@@ -65,6 +65,30 @@ contract Registrar is Ownable, CCIPReceiver {
 	}
 
 	/**
+	 * Creates a new Wrapped NFT
+	 * @nftAddr original NFT to wrap
+	 */
+	function setup(address nftAddr, bytes32 deployTx) external payable {
+		require(nftAddr.code.length > 0, "not_deployed");
+
+		bool ownable = getNftAdmin(nftAddr, msg.sender);
+		if (!ownable) {
+			require(deployTx > 0, "empty txHash");
+			require(false, "todo: Fetch from chainlink function the creator");
+		}
+
+		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
+		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
+
+		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
+		require(wrappedNft.code.length == 0, "already set up");
+
+		address created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
+		require(wrappedNft == created, "address mismatch");
+		require(wrappedNft.code.length > 0, "not created");
+	}
+
+	/**
 	 * Register the NFT to be bridged across the networks.
 	 * This smartcontract creates the Wrapped NFT.
 	 * Then invokes the message to the factories in other chains.
@@ -75,7 +99,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
+	function register(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);
@@ -87,7 +111,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
 		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
 
-		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router, selectors);
+		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
 		require(wrappedNft.code.length == 0, "already set up");
 
 		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string,string)",
@@ -125,7 +149,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			emit X_Setup(selectors[i], nftAddr, messageId);
 		}
 
-		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router, selectors);
+		new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
 	}
 
 	function _ccipReceive(
@@ -210,8 +234,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	function precomputeWrappedNft(address registrar, string memory _name,
 		string memory _symbol,
 		address nftAddress,
-		address _router,
-		uint64[] memory _destSelectors) public pure returns(address) {
+		address _router) public pure returns(address) {
 		bytes32 salt = generateSalt(registrar, nftAddress);
 
 		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -220,7 +243,7 @@ contract Registrar is Ownable, CCIPReceiver {
 			salt,
 			keccak256(abi.encodePacked(
 				type(WrappedNft).creationCode,
-				abi.encode(_name, _symbol, nftAddress, _router, _destSelectors)
+				abi.encode(_name, _symbol, nftAddress, _router)
 			))
 		)))));
 

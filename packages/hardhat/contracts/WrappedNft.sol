@@ -23,6 +23,9 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     address public router;
     uint64 public selector;
 
+    // remove the selector from here, and get it from the parent.
+    // track routers and selectors.
+
     // The linked nft addresses across blockchains.
     // For this blockchain it creates a wrapped NFT.
     //
@@ -47,14 +50,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     modifier validDestination(uint64 _selector) {
         require(_selector != selector, "to itself");
-        bool found = false;
-        for (uint256 i = 0; i < nftSupportedChains.length; i++) {
-            if (nftSupportedChains[i] == _selector) {
-                found = true;
-                break;
-            }
-        }
-        require(found, "unsupported network");
+        require(linkedNfts[_selector] != address(0), "not linked");
         _;
     }
 
@@ -152,7 +148,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         string memory uri = source.tokenURI(nftId);
 
         // pre-compute the linked address
-        address linkedAddr = registrar.linkedNfts(chainSelector, address(source));
+        address linkedAddr = linkedNfts[chainSelector];
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(linkedAddr),

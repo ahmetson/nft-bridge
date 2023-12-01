@@ -16,11 +16,25 @@ contract LinkedNft is ERC721URIStorage {
     address public router;
     uint64 public selector;
 
+    // remove the selector from here, and get it from the parent.
+    // track routers and selectors.
+
     uint64[] public nftSupportedChains;
     mapping(uint64 => address) public linkedNfts;
 
+    // todo set the sender by the ccipReceive
+    address internal sender;
+
     modifier onlyFactory() {
         require(msg.sender == address(registrar));
+        _;
+    }
+
+    modifier onlyFactoryOrSource() {
+        if (msg.sender != address(registrar)) {
+            require(nftSupportedChains.length > 0, "no chains");
+            require(sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
+        }
         _;
     }
 
@@ -51,8 +65,7 @@ contract LinkedNft is ERC721URIStorage {
         selector = _selector;
     }
 
-    // Todo change onlyFactory to onlyFactory or router
-    function setupOne(uint64 linkedSelector, address linkedNftAddr) public onlyFactory {
+    function setupOne(uint64 linkedSelector, address linkedNftAddr) public onlyFactoryOrSource {
         nftSupportedChains.push(linkedSelector);
         linkedNfts[linkedSelector] = linkedNftAddr;
     }

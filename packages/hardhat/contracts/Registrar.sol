@@ -7,6 +7,7 @@ import { Client } from "./chainlink/ccip/libraries/Client.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 import { SourceNftLib } from "./SourceNftLib.sol";
 import { LinkedFactoryInterface } from "./LinkedFactoryInterface.sol";
+import {LinkedFactory} from "./LinkedFactory.sol";
 
 /**
  * A Registrar is responsible to register NFTs in original
@@ -103,8 +104,7 @@ contract Registrar is Ownable {
 	function register(address nftAddr, bytes32 deployTx) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 
-		bool ownable = getNftAdmin(nftAddr, msg.sender);
-		if (!ownable) {
+		if (!getNftAdmin(nftAddr, msg.sender)) {
 			require(deployTx > 0, "empty txHash");
 			require(false, "todo: Fetch from chainlink function the creator");
 		}
@@ -115,70 +115,74 @@ contract Registrar is Ownable {
 		WrappedNft created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
 
 		// WrappedNFT requires the networkSelector to verify
-		created.setupOne(networkSelector, address(created));
+		created.setupOne(networkSelector);
 
 		nftAdmin[nftAddr] = msg.sender;
 		wrappers[nftAddr] = address(created);
 	}
 
-	/**
-	 * Register the NFT to be bridged across the networks.
-	 * This smartcontract creates the Wrapped NFT.
-	 * Then invokes the message to the factories in other chains.
+	/** Setup a linked NFT for `nftAddr` on another blockchain defined by `destSelector`.
+	 * Must be called after register `register`.
+	 * Must be called by the owner|creator of the NFT.
 	 *
 	 * The factory upon receiving the message creates the Linked NFT and lints it to other NFTs.
-	 *
-	 * Only owner/creator of the nft can call this function.
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
 	function setup(address nftAddr, uint64 destSelector) external onlyNftAdmin(nftAddr) payable {
-		require(nftAddr.code.length > 0, "not_deployed");
-		require(destNetworks[destSelector].router != address(0), "unsupported");
+		address destFactory = destNetworks[destSelector].factory;
+		require(destFactory != address(0), "no destination factory");
 
 		// add to the wrappedNft the selectors.
 		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
 		require(wrappedNft.linkedNfts(destSelector) == address(0), "already linked");
 
-		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
+		uint256 remaining = createLinkedNft(nftAddr, destSelector);
 
-		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-				receiver: abi.encode(destNetworks[destSelector].factory),
-				data: abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
-						nftAddr, wrappedNft.name(), wrappedNft.symbol(), selectors, linkedNftAddrs),
-				tokenAmounts: new Client.EVMTokenAmount[](0),
-				extraArgs: "",
-				feeToken: address(0)
-		});
+		address destRouter = destNetworks[destSelector].router;
+		address linkedNftAddr = LinkedFactoryInterface(factory).precomputeLinkedNft(destFactory, wrappedNft.name(), wrappedNft.symbol(), nftAddr, destRouter);
 
-		uint256 fee = IRouterClient(router).getFee(
-				destSelector,
-				message
-		);
-
-		// duplicate add more fee
-		require(msg.value >= fee, "insufficient balance");
-
-		bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
-			destSelector,
-			message
-		);
-
-		emit X_Setup(destSelector, nftAddr, messageId);
-		address linkedNftAddr;
-
-		{
-		LinkedFactoryInterface f = LinkedFactoryInterface(factory);
-		linkedNftAddr = f.precomputeLinkedNft(destNetworks[destSelector].registrar, wrappedNft.name(), wrappedNft.symbol(), nftAddr, router);
 		wrappedNft.setupOne(destSelector, linkedNftAddr);
-		}
 
-		uint256 remaining = wrappedNft.lintLast(msg.value - fee);
+		remaining = wrappedNft.lintLast(remaining);
 		// fund back additional money
 		if (remaining > 0) {
 			(bool success, ) = msg.sender.call{ value: remaining }("");
 			require(success, "Failed to send Ether back");
 		}
+	}
+
+	/// @dev Invokes the factory in the destination chain to create a linked NFT for `nftAddr`.
+	/// @param nftAddr the original NFT address
+	/// @return the native token that user can retrieve back
+	function createLinkedNft(address nftAddr, uint64 destSelector) internal returns (uint256) {
+		WrappedNft wrappedNft = WrappedNft(nftAddr);
+		// The created nft will be linked to all previous nfts that we have.
+		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
+
+		// A function of LinkedFactory that we invoke
+		bytes memory data = abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
+			nftAddr, wrappedNft.name(), wrappedNft.symbol(), selectors, linkedNftAddrs);
+
+		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+			receiver: abi.encode(destNetworks[destSelector].factory),
+			data: data,
+			tokenAmounts: new Client.EVMTokenAmount[](0),
+			extraArgs: "",
+			feeToken: address(0)
+		});
+
+		uint256 fee = IRouterClient(router).getFee(
+			destSelector,
+			message
+		);
+
+		require(msg.value >= fee, "insufficient balance");
+
+		bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(destSelector, message);
+
+		emit X_Setup(destSelector, nftAddr, messageId);
+		return msg.value - fee;
 	}
 
 	// Returns true if the nft is Ownable and admin is the owner.

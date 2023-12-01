@@ -14,7 +14,6 @@ contract LinkedNft is ERC721URIStorage {
 
     address public registrar;
     address public router;
-    uint64 public selector;
 
     // remove the selector from here, and get it from the parent.
     // track routers and selectors.
@@ -39,7 +38,6 @@ contract LinkedNft is ERC721URIStorage {
     }
 
     modifier validDestination(uint64 _selector) {
-        require(_selector != selector, "to itself");
         bool found = false;
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             if (nftSupportedChains[i] == _selector) {
@@ -59,10 +57,6 @@ contract LinkedNft is ERC721URIStorage {
         ERC721(string.concat("Linked ", _name), string.concat("l", _symbol)) {
         registrar = msg.sender;
         source = _source;
-    }
-
-    function setSelector(uint64 _selector) external onlyFactory {
-        selector = _selector;
     }
 
     function setupOne(uint64 linkedSelector, address linkedNftAddr) public onlyFactoryOrSource {

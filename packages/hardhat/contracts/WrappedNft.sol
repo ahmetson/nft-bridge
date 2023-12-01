@@ -64,7 +64,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
         registrar = msg.sender;
     }
-
     /// @notice registers itself as the first element of NFTs supported chains.
     /// @dev this method must be called first.
     function setupOne(uint64 linkedSelector) external onlyFactory {
@@ -83,6 +82,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         linkedNfts[linkedSelector] = linkedNftAddr;
     }
 
+    /// @notice Lint the last added nft across all blockchains.
+    /// It works if there are at least three supported nfts.
     function lintLast(uint256 budget) external onlyFactory returns(uint256) {
         if (nftSupportedChains.length <= 2) {
             return budget;
@@ -95,9 +96,12 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         for (uint256 i = 1; i < nftSupportedChains.length - 1; i++) {
             uint64 destSelector = nftSupportedChains[i];
 
+            // Linked NFT will accept this method to add nft on a new blockchain.
+            bytes memory data = abi.encodeWithSignature("setupOne(uint64,address)", lastSelector, lastNftAddr);
+
             Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
                 receiver: abi.encode(linkedNfts[destSelector]),
-                data: abi.encodeWithSignature("setupOne(uint64,address)", lastSelector, lastNftAddr),
+                data: data,
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: "",
                 feeToken: address(0)

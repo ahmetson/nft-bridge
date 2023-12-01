@@ -10,8 +10,7 @@ import { LinkedNft } from "./LinkedNft.sol";
 // todo keep the selector of this chain
 
 /**
- * A smart contract that allows changing a state variable of the contract and tracking the changes
- * It also allows the owner to withdraw the Ether in the contract
+ * A smartcontract that creates new NFTs.
  * @author Medet Ahmetson
  */
 contract LinkedFactory is Ownable, CCIPReceiver {
@@ -22,7 +21,6 @@ contract LinkedFactory is Ownable, CCIPReceiver {
   	struct Network {
 		address router; 	// Chainlink CCIP router
 		address registrar; 	// Registrar on another blockchain
-		address factory;
 	}
 
 	uint64[] public destNetworkSelectors;
@@ -77,24 +75,13 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		destNetworks[_selector].registrar = _registrar;
 	}
 
-	function setFactory(uint64 _selector, address _factory) external onlyOwner {
-		require(destNetworks[_selector].router != address(0), "unsupported network");
-		// Enable in production
-		// require(destNetworks[_selector].factory == address(0), "registrar exists");
-
-		destNetworks[_selector].factory = _factory;
-	}
-
 	function _ccipReceive(
 		Client.Any2EVMMessage memory message
 	) internal override {
-		require(message.sourceChainSelector != networkSelector, "called from same network");
 		address sourceRegistrar = abi.decode(message.sender, (address));
-		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not registrar");
+		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not the registrar");
 
-		tempChainId = message.sourceChainSelector;
 		(bool success, ) = address(this).call(message.data);
-		tempChainId = 0;
 		require(success);
 	}
 
@@ -104,9 +91,8 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		string memory symbol,
 		uint64[] memory selectors,
 		address[] memory linkedNftAddrs
-	) private {
+	) internal {
 		LinkedNft linkedNft = new LinkedNft{salt: generateSalt(address(this), nftAddr)}(name, symbol, nftAddr, router);
-		linkedNft.setSelector(networkSelector);
 		// first network selector is the original chain. it must be same everywhere.
 		// so let's keep the order in all blockchains.
 		linkedNft.setup(selectors, linkedNftAddrs);

@@ -9,22 +9,31 @@ import { SourceNftLib } from "./SourceNftLib.sol";
 import { LinkedFactoryInterface } from "./LinkedFactoryInterface.sol";
 
 /**
- * A smart contract that allows changing a state variable of the contract and tracking the changes
- * It also allows the owner to withdraw the Ether in the contract
+ * A Registrar is responsible to register NFTs in original
+ * blockchain by creating a WrappedNFT.
+ *
+ * The Registrar also allows to bridge the WrappedNFTs in other chains.
+ * In this case, the Registrar calls the LinkedFactory in the destinations.
+ *
+ * The Registrar has the admin control over the WrappedNFTs.
+ * This role allows the registrar to update the WrappedNFT states.
  * @author Medet Ahmetson
  */
 contract Registrar is Ownable {
+	// @dev Chainlink Router that sends or receives the messages
 	address public router;
+	// @dev A Network Selector made by Chainlink.
+	// This parameter is used to track the NFTs association to the networks.
 	uint64 public networkSelector;
+
+	/// @dev Factory has the function to precompuate the files.
 	address public factory;
 
-  	struct Network {
+	struct Network {
 		address router; 	// Chainlink CCIP router
 		address registrar; 	// Registrar on another blockchain
 		address factory;
 	}
-
-	uint64[] public destNetworkSelectors;
 
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
@@ -54,7 +63,6 @@ contract Registrar is Ownable {
 
 		router = _router;
 		networkSelector = _networkSelector;
-		destNetworkSelectors = destSelectors;
 
 		for (uint64 i = 0; i < destSelectors.length; i++) {
 			destNetworks[destSelectors[i]].router = destRouters[i];
@@ -72,20 +80,25 @@ contract Registrar is Ownable {
 		destNetworks[_selector].registrar = _registrar;
 	}
 
+	/// @notice sets a factory in this network.
+	/// @dev The network must be supported. The factory is over-written
+	function setFactory(address _factory) external onlyOwner {
+		factory = _factory;
+	}
+
+
+	/// @notice sets a factory in other network.
+	/// @dev The network must be supported. The factory is over-written
 	function setFactory(uint64 _selector, address _factory) external onlyOwner {
-		if (_selector == networkSelector) {
-			factory = _factory;
-		}
 		require(destNetworks[_selector].router != address(0), "unsupported network");
-		// Enable in production
-		// require(destNetworks[_selector].factory == address(0), "registrar exists");
 
 		destNetworks[_selector].factory = _factory;
 	}
 
-	/**
-	 * Creates a new Wrapped NFT
+	/** Creates a new Wrapped NFT
 	 * @param nftAddr original NFT to wrap
+	 * @param deployTx is an optional parameter containing contract creation. Pass it if contract is not ownable.
+	 * @dev It requires a fee to cover the `deployTx` validation. If `nftAddr` is ownable, then no fee is needed.
 	 */
 	function register(address nftAddr, bytes32 deployTx) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
@@ -99,19 +112,13 @@ contract Registrar is Ownable {
 		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
 		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
 
-		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
-		require(wrappedNft.code.length == 0, "already set up");
-
 		WrappedNft created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
-		require(wrappedNft == address(created), "address mismatch");
-		require(wrappedNft.code.length > 0, "not created");
 
-		// call it from the WrappedNft
-		created.setSelector(networkSelector);
-		created.setupOne(networkSelector, wrappedNft);
+		// WrappedNFT requires the networkSelector to verify
+		created.setupOne(networkSelector, address(created));
 
 		nftAdmin[nftAddr] = msg.sender;
-		wrappers[nftAddr] = wrappedNft;
+		wrappers[nftAddr] = address(created);
 	}
 
 	/**

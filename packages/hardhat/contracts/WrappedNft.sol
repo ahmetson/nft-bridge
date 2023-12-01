@@ -20,10 +20,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     address public registrar;
     address public router;
-    uint64 public selector;
 
-    // remove the selector from here, and get it from the parent.
-    // track routers and selectors.
+    // track routers and selectors of dest blockchains.
 
     // The linked nft addresses across blockchains.
     // For this blockchain it creates a wrapped NFT.
@@ -48,7 +46,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     }
 
     modifier validDestination(uint64 _selector) {
-        require(_selector != selector, "to itself");
         require(linkedNfts[_selector] != address(0), "not linked");
         _;
     }
@@ -68,22 +65,22 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         registrar = msg.sender;
     }
 
-    // todo add registerNetwork
-
-    function setSelector(uint64 _selector) external onlyFactory {
-        selector = _selector;
+    /// @notice registers itself as the first element of NFTs supported chains.
+    /// @dev this method must be called first.
+    function setupOne(uint64 linkedSelector) external onlyFactory {
+        require(nftSupportedChains.length == 0, "call it only once");
+        nftSupportedChains.push(linkedSelector);
+        linkedNfts[linkedSelector] = address(this);
     }
 
+    /// @notice registers a linked nft.
+    /// @dev This method must be called after calling setting up wrapped nft as the first supported nft.
+    /// @param linkedSelector the destination blockchain.
+    /// @param linkedNftAddr the linked nft address at the destination.
     function setupOne(uint64 linkedSelector, address linkedNftAddr) external onlyFactory {
+        require(nftSupportedChains.length > 0, "set wrapped nft itself first");
         nftSupportedChains.push(linkedSelector);
         linkedNfts[linkedSelector] = linkedNftAddr;
-
-        // first one is it's own parameter.
-        // the second one alreay knows previois ones.
-        // Third and onward need to broadcast
-        if (nftSupportedChains.length <= 2) {
-            return;
-        }
     }
 
     function lintLast(uint256 budget) external onlyFactory returns(uint256) {
@@ -92,7 +89,6 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         }
         // the first selector is this contract.
         // the last one added and linted automatically to previous ones.
-
         uint64 lastSelector = nftSupportedChains[nftSupportedChains.length - 1];
         address lastNftAddr = linkedNfts[lastSelector];
 

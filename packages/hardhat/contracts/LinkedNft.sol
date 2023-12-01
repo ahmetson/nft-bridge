@@ -36,8 +36,13 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
     modifier onlyFactoryOrSource() {
         if (msg.sender != address(factory)) {
             require(nftSupportedChains.length > 0, "no chains");
-            require(sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
+            require(sender != address(0) && sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
         }
+        _;
+    }
+
+    modifier onlySource() {
+        require(sender != address(0) && sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
         _;
     }
 
@@ -80,6 +85,15 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
         }
     }
 
+    /// @notice Mint a new NFT from the source.
+    function bridge(uint256 nftId, address to, string memory uri) public onlySource {
+        require(ownerOf(nftId) == address(0), "already minted");
+
+        _mint(to, nftId);
+        _setTokenURI(nftId, uri);
+    }
+
+
     // mint and burn are done by the registrar
 
     // linkNfts is called by factory or by the original selector
@@ -100,6 +114,6 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
             return true;
         }
         return CCIPReceiver.supportsInterface(interfaceId);
-    }
 
+    }
 }

@@ -151,7 +151,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(linkedAddr),
-            data: abi.encodeWithSignature("xBridge(uint256,address,string memory)", nftId, msg.sender, uri),
+            data: abi.encodeWithSignature("bridge(uint256,address,string)", nftId, msg.sender, uri),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
             feeToken: address(0)

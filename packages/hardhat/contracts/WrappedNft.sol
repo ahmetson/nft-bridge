@@ -32,6 +32,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
+    event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 
     modifier nftOwner(uint256 nftId) {
         require(source.ownerOf(nftId) == msg.sender, "not owner");
@@ -81,11 +82,57 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     function setupOne(uint64 linkedSelector, address linkedNftAddr) external onlyFactory {
         nftSupportedChains.push(linkedSelector);
         linkedNfts[linkedSelector] = linkedNftAddr;
+
+        // first one is it's own parameter.
+        // the second one alreay knows previois ones.
+        // Third and onward need to broadcast
+        if (nftSupportedChains.length <= 2) {
+            return;
+        }
+    }
+
+    function lintLast(uint256 budget) external onlyFactory returns(uint256) {
+        if (nftSupportedChains.length <= 2) {
+            return budget;
+        }
+        // the first selector is this contract.
+        // the last one added and linted automatically to previous ones.
+
+        uint64 lastSelector = nftSupportedChains[nftSupportedChains.length - 1];
+        address lastNftAddr = linkedNfts[lastSelector];
+
+        for (uint256 i = 1; i < nftSupportedChains.length - 1; i++) {
+            uint64 destSelector = nftSupportedChains[i];
+
+            Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+                receiver: abi.encode(linkedNfts[destSelector]),
+                data: abi.encodeWithSignature("setupOne(uint64,address)", lastSelector, lastNftAddr),
+                tokenAmounts: new Client.EVMTokenAmount[](0),
+                extraArgs: "",
+                feeToken: address(0)
+            });
+
+            uint256 fee = IRouterClient(router).getFee(
+                destSelector,
+                message
+            );
+            require(budget >= fee, "insufficient linting balance");
+            budget -= fee;
+
+            bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
+                destSelector,
+                message
+            );
+
+            emit X_SetupOne(destSelector, lastNftAddr, messageId);
+        }
+
+        return budget;
     }
 
     function allNfts() external view returns(uint64[] memory, address[] memory) {
         address[] memory linkedNftAddrs = new address[](nftSupportedChains.length + 1);
-        for (uint256 i = 1; i <= nftSupportedChains.length; i++) {
+        for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             linkedNftAddrs[i] = linkedNfts[nftSupportedChains[i]];
         }
 

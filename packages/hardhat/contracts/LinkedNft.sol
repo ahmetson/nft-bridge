@@ -51,7 +51,8 @@ contract LinkedNft is ERC721URIStorage {
         selector = _selector;
     }
 
-    function setupOne(uint64 linkedSelector, address linkedNftAddr) external onlyFactory {
+    // Todo change onlyFactory to onlyFactory or router
+    function setupOne(uint64 linkedSelector, address linkedNftAddr) public onlyFactory {
         nftSupportedChains.push(linkedSelector);
         linkedNfts[linkedSelector] = linkedNftAddr;
     }

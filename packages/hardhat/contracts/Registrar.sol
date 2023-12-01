@@ -96,6 +96,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		require(wrappedNft == address(created), "address mismatch");
 		require(wrappedNft.code.length > 0, "not created");
 
+		// call it from the WrappedNft
 		created.setSelector(networkSelector);
 		created.setupOne(networkSelector, wrappedNft);
 
@@ -156,47 +157,14 @@ contract Registrar is Ownable, CCIPReceiver {
 		emit X_Setup(destSelector, nftAddr, messageId);
 
 		address linkedNftAddr = precomputeLinkedNft(destNetworks[destSelector].registrar, wrappedName, wrappedSymbol, nftAddr, router);
+		wrappedNft.setupOne(destSelector, linkedNftAddr);
 
-		uint256 remaining = msg.value - fee;
-		if (selectors.length > 1) {
-			remaining = broadcastSetupOne(remaining, destSelector, linkedNftAddr, selectors, linkedNftAddrs);
-		}
+		uint256 remaining = wrappedNft.lintLast(msg.value - fee);
 		// fund back additional money
 		if (remaining > 0) {
 			(bool success, ) = msg.sender.call{ value: remaining }("");
 			require(success, "Failed to send Ether back");
 		}
-
-		wrappedNft.setupOne(destSelector, linkedNftAddr);
-	}
-
-	function broadcastSetupOne(uint256 remainingFee, uint64 destSelector, address linkedNftAddr, uint64[] memory selectors, address[] memory linkedNftAddrs) internal returns(uint256) {
-		// the first selector is this contract.
-		for (uint256 i = 1; i < selectors.length; i++) {
-			Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-				receiver: abi.encode(linkedNftAddrs[i]),
-				data: abi.encodeWithSignature("xSetupOne(uint64,address)", destSelector, linkedNftAddr),
-				tokenAmounts: new Client.EVMTokenAmount[](0),
-				extraArgs: "",
-				feeToken: address(0)
-			});
-
-			uint256 fee = IRouterClient(router).getFee(
-				selectors[i],
-				message
-			);
-			require(remainingFee >= fee, "insufficient linting balance");
-			remainingFee -= fee;
-
-			bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
-				selectors[i],
-				message
-			);
-
-			emit X_SetupOne(selectors[i], linkedNftAddrs[i], messageId);
-		}
-
-		return remainingFee;
 	}
 
 	function _ccipReceive(

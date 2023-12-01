@@ -4,25 +4,24 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import { IRouterClient } from "./chainlink/ccip/interfaces/IRouterClient.sol";
 import { Client } from "./chainlink/ccip/libraries/Client.sol";
-import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
 import { WrappedNft } from "./WrappedNft.sol";
-import { LinkedNft } from "./LinkedNft.sol";
 import { SourceNftLib } from "./SourceNftLib.sol";
-
-// todo keep the selector of this chain
+import { LinkedFactoryInterface } from "./LinkedFactoryInterface.sol";
 
 /**
  * A smart contract that allows changing a state variable of the contract and tracking the changes
  * It also allows the owner to withdraw the Ether in the contract
  * @author Medet Ahmetson
  */
-contract Registrar is Ownable, CCIPReceiver {
+contract Registrar is Ownable {
 	address public router;
 	uint64 public networkSelector;
+	address public factory;
 
   	struct Network {
 		address router; 	// Chainlink CCIP router
 		address registrar; 	// Registrar on another blockchain
+		address factory;
 	}
 
 	uint64[] public destNetworkSelectors;
@@ -49,7 +48,7 @@ contract Registrar is Ownable, CCIPReceiver {
 		uint64 _networkSelector,
 		address _router,
 		uint64[] memory destSelectors,
-		address[] memory destRouters) Ownable(msg.sender) CCIPReceiver(_router) {
+		address[] memory destRouters) Ownable(msg.sender) {
 
 		require(destSelectors.length == destRouters.length, "mismatch length");
 
@@ -65,12 +64,23 @@ contract Registrar is Ownable, CCIPReceiver {
 	/**
 	 * Set's the registrar on other blockchain.
 	 */
-	function setRegistrar(uint64 selector, address registrar) external onlyOwner {
-		require(destNetworks[selector].router != address(0), "unsupported network");
+	function setRegistrar(uint64 _selector, address _registrar) external onlyOwner {
+		require(destNetworks[_selector].router != address(0), "unsupported network");
 		// Enable in production
-		// require(destNetworks[selector].registrar == address(0), "registrar exists");
+		// require(destNetworks[_selector].registrar == address(0), "registrar exists");
 
-		destNetworks[selector].registrar = registrar;
+		destNetworks[_selector].registrar = _registrar;
+	}
+
+	function setFactory(uint64 _selector, address _factory) external onlyOwner {
+		if (_selector == networkSelector) {
+			factory = _factory;
+		}
+		require(destNetworks[_selector].router != address(0), "unsupported network");
+		// Enable in production
+		// require(destNetworks[_selector].factory == address(0), "registrar exists");
+
+		destNetworks[_selector].factory = _factory;
 	}
 
 	/**
@@ -123,19 +133,12 @@ contract Registrar is Ownable, CCIPReceiver {
 		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
 		require(wrappedNft.linkedNfts(destSelector) == address(0), "already linked");
 
-		string memory wrappedName = wrappedNft.name();
-		string memory wrappedSymbol = wrappedNft.symbol();
-
 		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
 
-		// todo
-		// get all linked nfts in wrapped nft.
-		// then send to all nfts a new added nft. setupOne(networkId, nftAddress); -> broadcastSetupOne
-
 		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-				receiver: abi.encode(destNetworks[destSelector].registrar),
+				receiver: abi.encode(destNetworks[destSelector].factory),
 				data: abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
-						nftAddr, wrappedName, wrappedSymbol, selectors, linkedNftAddrs),
+						nftAddr, wrappedNft.name(), wrappedNft.symbol(), selectors, linkedNftAddrs),
 				tokenAmounts: new Client.EVMTokenAmount[](0),
 				extraArgs: "",
 				feeToken: address(0)
@@ -155,9 +158,13 @@ contract Registrar is Ownable, CCIPReceiver {
 		);
 
 		emit X_Setup(destSelector, nftAddr, messageId);
+		address linkedNftAddr;
 
-		address linkedNftAddr = precomputeLinkedNft(destNetworks[destSelector].registrar, wrappedName, wrappedSymbol, nftAddr, router);
+		{
+		LinkedFactoryInterface f = LinkedFactoryInterface(factory);
+		linkedNftAddr = f.precomputeLinkedNft(destNetworks[destSelector].registrar, wrappedNft.name(), wrappedNft.symbol(), nftAddr, router);
 		wrappedNft.setupOne(destSelector, linkedNftAddr);
+		}
 
 		uint256 remaining = wrappedNft.lintLast(msg.value - fee);
 		// fund back additional money
@@ -166,43 +173,6 @@ contract Registrar is Ownable, CCIPReceiver {
 			require(success, "Failed to send Ether back");
 		}
 	}
-
-	function _ccipReceive(
-		Client.Any2EVMMessage memory message
-	) internal override {
-		require(message.sourceChainSelector != networkSelector, "called from same network");
-		address sourceRegistrar = abi.decode(message.sender, (address));
-		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not registrar");
-
-		tempChainId = message.sourceChainSelector;
-		(bool success, ) = address(this).call(message.data);
-		tempChainId = 0;
-		require(success);
-	}
-
-	function xSetup(
-		address nftAddr,
-		string memory name,
-		string memory symbol,
-		uint64[] memory selectors,
-		address[] memory linkedNftAddrs
-	) private {
-		LinkedNft linkedNft = new LinkedNft{salt: generateSalt(address(this), nftAddr)}(name, symbol, nftAddr, router);
-		linkedNft.setSelector(networkSelector);
-		// first network selector is the original chain. it must be same everywhere.
-		// so let's keep the order in all blockchains.
-		linkedNft.setup(selectors, linkedNftAddrs);
-		linkedNft.setupOne(networkSelector, address(linkedNft));
-
-		emit Linked(nftAddr, address(linkedNft));
-	}
-
-	// Todo add xSetupAdditional()
-
-	function isValidDestRegistrar(uint64 selector, address registrar) public view returns(bool) {
-		return destNetworks[selector].registrar == registrar;
-	}
-
 
 	// Returns true if the nft is Ownable and admin is the owner.
 	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
@@ -256,24 +226,4 @@ contract Registrar is Ownable, CCIPReceiver {
 
 		return predictedAddress;
 	}
-
-	function precomputeLinkedNft(address registrar, string memory _name,
-		string memory _symbol,
-		address nftAddress,
-		address _router) public pure returns(address) {
-		bytes32 salt = generateSalt(registrar, nftAddress);
-
-		address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
-			bytes1(0xff),
-			registrar, // address of the smartcontract
-			salt,
-			keccak256(abi.encodePacked(
-				type(LinkedNft).creationCode,
-				abi.encode(_name, _symbol, nftAddress, _router)
-			))
-		)))));
-
-		return predictedAddress;
-	}
-
 }

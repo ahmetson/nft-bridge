@@ -30,6 +30,9 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     uint64[] public nftSupportedChains;
     mapping(uint64 => address) public linkedNfts;
 
+    // NFT that sent the transaction
+    address private sender;
+
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
     event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
@@ -39,6 +42,20 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         require(originalNft.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");
         _;
     }
+
+    modifier onlySource {
+        require(sender != address(0), "not from ccip");
+        bool found = false;
+        for (uint256 i = 0; i < nftSupportedChains.length; i++) {
+            if (linkedNfts[nftSupportedChains[i]] == sender) {
+                found = true;
+                break;
+            }
+        }
+        require(found, "not source");
+        _;
+    }
+
 
     modifier onlyFactory() {
         require(msg.sender == registrar);
@@ -140,6 +157,12 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     //
     ////////////////////////////////////////////////////////////////////////////
 
+    // Unlock the nft
+    function bridge(uint256 nftId, address to) public onlySource {
+        _burn(nftId);
+        originalNft.safeTransferFrom(address(this), to, nftId);
+    }
+
     function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
         require(ownerOf(nftId) == address(0), "wrapped nft exists");
         originalNft.safeTransferFrom(msg.sender, address(this), nftId);
@@ -174,26 +197,15 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         emit X_Bridge(chainSelector, nftId, msg.sender, messageId);
     }
 
-    // Only a router can call it.
-    function unBridge(uint256 nftId, address to) internal {
-        _burn(nftId);
-        originalNft.safeTransferFrom(address(this), to, nftId);
-    }
-
-    // Call it if it's the owner, and it will withdraw from other blockchain.
-    // Make it external so that it's not called by the oracles.
-    //    function unBridge(uint256 nftId, uint256 chainId) external {
-
-    //}
-
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
-        address sourceLinkedNft = abi.decode(message.sender, (address));
-        require(linkedNfts[message.sourceChainSelector] == sourceLinkedNft, "not valid source");
+        sender = abi.decode(message.sender, (address));
+        require(sender == linkedNfts[message.sourceChainSelector], "not valid source");
 
         (bool success, ) = address(this).call(message.data);
         require(success);
+        sender = address(0);
     }
 
     ////////////////////////////////////////////////////////////////////////////

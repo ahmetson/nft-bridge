@@ -25,8 +25,15 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
     uint64[] public nftSupportedChains;
     mapping(uint64 => address) public linkedNfts;
 
-    // todo set the sender by the ccipReceive
     address internal sender;
+
+    event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
+
+    modifier nftOwner(uint256 nftId) {
+        require(ownerOf(nftId) == msg.sender, "not owner");
+        _;
+    }
+
 
     modifier onlyFactory() {
         require(msg.sender == address(factory));
@@ -35,14 +42,28 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
 
     modifier onlyFactoryOrSource() {
         if (msg.sender != address(factory)) {
-            require(nftSupportedChains.length > 0, "no chains");
-            require(sender != address(0) && sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
+            require(sender != address(0), "not from ccip");
+            bool found = false;
+            for (uint256 i = 0; i < nftSupportedChains.length; i++) {
+                if (linkedNfts[nftSupportedChains[i]] == sender) {
+                    found = true;
+                    break;
+                }
+            }
+            require(found, "not source");
         }
         _;
     }
 
     modifier onlySource() {
-        require(sender != address(0) && sender == linkedNfts[nftSupportedChains[0]], "not wrapper");
+        bool found = false;
+        for (uint256 i = 0; i < nftSupportedChains.length; i++) {
+            if (linkedNfts[nftSupportedChains[i]] == sender) {
+                found = true;
+                break;
+            }
+        }
+        require(found, "not source");
         _;
     }
 
@@ -91,6 +112,42 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
 
         _mint(to, nftId);
         _setTokenURI(nftId, uri);
+    }
+
+    /// @notice Transfer the nft to another blockchain.
+    function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
+        // pre-compute the linked address
+        address linkedAddr = linkedNfts[chainSelector];
+
+        bytes memory data;
+        if (nftSupportedChains[0] == chainSelector) {
+            data = abi.encodeWithSignature("bridge(uint256,address)", nftId, msg.sender);
+        } else {
+            data = abi.encodeWithSignature("bridge(uint256,address,string)", nftId, msg.sender, tokenURI(nftId));
+        }
+
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(linkedAddr),
+            data: data,
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: address(0)
+        });
+
+        uint256 fee = IRouterClient(router).getFee(
+            chainSelector,
+            message
+        );
+        require(msg.value >= fee, "insufficient gas");
+
+        bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(
+            chainSelector,
+            message
+        );
+
+        _burn(nftId);
+
+        emit X_Bridge(chainSelector, nftId, msg.sender, messageId);
     }
 
 

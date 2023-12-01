@@ -28,6 +28,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     //
     // chain id => linked nft|wrapped nft.
     uint64[] public nftSupportedChains;
+    mapping(uint64 => address) public linkedNfts;
 
     event NftReceived(address operator, address from, uint256 tokenId, bytes data);
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
@@ -75,6 +76,20 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     function setSelector(uint64 _selector) external onlyFactory {
         selector = _selector;
+    }
+
+    function setupOne(uint64 linkedSelector, address linkedNftAddr) external onlyFactory {
+        nftSupportedChains.push(linkedSelector);
+        linkedNfts[linkedSelector] = linkedNftAddr;
+    }
+
+    function allNfts() external view returns(uint64[] memory, address[] memory) {
+        address[] memory linkedNftAddrs = new address[](nftSupportedChains.length + 1);
+        for (uint256 i = 1; i <= nftSupportedChains.length; i++) {
+            linkedNftAddrs[i] = linkedNfts[nftSupportedChains[i]];
+        }
+
+        return (nftSupportedChains, linkedNftAddrs);
     }
 
     ////////////////////////////////////////////////////////////////////////////

@@ -73,7 +73,7 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	/**
 	 * Creates a new Wrapped NFT
-	 * @nftAddr original NFT to wrap
+	 * @param nftAddr original NFT to wrap
 	 */
 	function register(address nftAddr, bytes32 deployTx) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
@@ -90,9 +90,11 @@ contract Registrar is Ownable, CCIPReceiver {
 		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
 		require(wrappedNft.code.length == 0, "already set up");
 
-		address created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
-		require(wrappedNft == created, "address mismatch");
+		WrappedNft created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
+		require(wrappedNft == address(created), "address mismatch");
 		require(wrappedNft.code.length > 0, "not created");
+
+		created.setSelector(networkSelector);
 
 		nftAdmin[nftAddr] = msg.sender;
 	}
@@ -108,20 +110,17 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external onlyNftAdmin(nftAddr) payable {
+	function setup(address nftAddr, uint64[] calldata selectors) external onlyNftAdmin(nftAddr) payable {
 		require(nftAddr.code.length > 0, "not_deployed");
-
-		bool ownable = getNftAdmin(nftAddr, msg.sender);
-		if (!ownable) {
-			require(deployTx > 0, "empty txHash");
-			require(deployTx == 0, "todo: Fetch from chainlink function the creator");
-		}
 
 		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
 		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
 
+		// onlyNftAdmin modifier ensures that it's created.
 		address wrappedNft = precomputeWrappedNft(address(this), wrappedName, wrappedSymbol, nftAddr, router);
-		require(wrappedNft.code.length == 0, "already set up");
+
+		// add to the wrappedNft the selectors.
+//		WrappedNft wrappedNft = WrappedNft(wrappedNftAddr);
 
 		bytes memory data = abi.encodeWithSignature("xSetup(address,uint64[],string,string)",
 			nftAddr, selectors, wrappedName, wrappedSymbol);

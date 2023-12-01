@@ -38,6 +38,11 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         _;
     }
 
+    modifier onlyFactory() {
+        require(msg.sender == address(registrar));
+        _;
+    }
+
     modifier validDestination(uint64 _selector) {
         require(_selector != selector, "to itself");
         bool found = false;
@@ -67,8 +72,10 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     }
 
     // todo add registerNetwork
-    // todo add setSelector
 
+    function setSelector(uint64 _selector) external onlyFactory {
+        selector = _selector;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     //

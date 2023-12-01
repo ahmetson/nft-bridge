@@ -68,7 +68,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	 * Creates a new Wrapped NFT
 	 * @nftAddr original NFT to wrap
 	 */
-	function setup(address nftAddr, bytes32 deployTx) external payable {
+	function register(address nftAddr, bytes32 deployTx) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);
@@ -99,7 +99,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function register(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
+	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);

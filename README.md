@@ -3,7 +3,27 @@
 
 **To start quickly, go to the [Getting Started](#getting-started) section.**
 
-It's not production ready, yet. So only available on the Testnets.
+Made for the hackathon for the MVP.
+
+Features:
+* :heart_eyes: **Simple**. Whole bridge is 4 smartcontracts only.
+* :sparkles: **Easy setup**. Deploy a single NFT in one blockchain, it will create smartcontracts automatically.
+* :earth_asia: **Multi-chain**. Transfer between many blockchains.
+* :game_die: **Decentralized and secure**. Bridge directly from NFT itself. No single manager.
+
+# Supported Blockchains
+It's not production ready, yet. So only available on the Testnet.
+
+The NFT Bridge uses Chainlink CCIP as the middleware solution.
+Therefore, its availabe in the blockchains supported by Chainlink CCIP.
+
+* Sepolia Testnet
+* Mumbai Testnet
+* Fuji Testnet
+* BNB Chain Testnet
+
+Visit official Chainlink documentations for a list of networks:
+[CCIP Supported Networks Testnet](https://docs.chain.link/ccip/supported-networks/testnet)
 
 # Version 0
 The [version 0](https://github.com/ahmetson/nft-bridge/tree/chainlink-function)
@@ -14,10 +34,10 @@ At that time it wasn't launched. So with this hackathon
 I finally want to release the more secure NFT Bridge.
 
 > I signed up for the announcements.
-> 
+>
 > I joined to the early access.
-> 
-> Within two years I messaged several times Chainlink, 
+>
+> Within two years I messaged several times Chainlink,
 > about the news regarding CCIP but no response.
 
 --- 
@@ -38,87 +58,143 @@ there is needed a minimal setup. Otherwise, no code is needed.*
 
 # Getting Started
 
-## Pre-requirements
+## 0. Pre-requirements
 Deploy your NFT on the original chain.
 
-*Recommended to have the smartcontract that's [Ownable](https://docs.openzeppelin.com/contracts/5.x/access-control#ownership-and-ownable).*
+***Required** to have the smartcontract that's [Ownable](https://docs.openzeppelin.com/contracts/5.x/access-control#ownership-and-ownable).*
 
 > [AccessControl](https://docs.openzeppelin.com/contracts/5.x/access-control#role-based-access-control) not supported YET.
-> 
+>
 > [AccessManager](https://docs.openzeppelin.com/contracts/5.x/access-control#using_accessmanager) not supported YET.
+>
+> **Contract Creator** not supported yet.
+>
+> Custom owner mechanism not supported yet.
 
-## Setup
-Go to the [nft-bridge/setup](https://nft-bridge.org/setup).
+## 1. Register
+> **Only owner of NFT contract allowed.**
 
-Connect your wallet, switch to the blockchain where your NFT was deployed.
+First, step is the original NFT must be *registered* by the NFT Bridge.
+At the registration process, the NFT Bridge identifies the owner, creates the wrapper
+for the nft. That contract later will be used to bridge the nfts.
 
-Pass the NFT address.
-
-Then, mark the destination chains where you want to bridge it.
-
-> **Either you must be an owner of the NFT, or you must be the deployer of the NFT.**
-
-## First bridge
-
-Go to the [nft-bridge/bridge](https://nft-bridge.org/bridge)
-
-Connect your wallet. You don't have to be the owner of the smartcontract.
-
-The smartcontract will show the list of NFT types for bridging.
-Click any type to see all owned NFTs.
-Click on the NFT.
-Define the destination chain.
-
-Click Approve. Wait for two/three-phase confirmation.
-
-Done. First, the smartcontract checks the ownership. 
-If the NFT is not ownable then, it will verify the deployed transaction.
-
-Then, it will Wrap your NFT into the frozen NFT.
-
-The last phase is triggered by the Wrapped NFT.
-The locking process requests an NFT minting on the destination chain via chainlink oracles.
-
-## Unbridge/Cross-chain transfer
-
-Go to [nft-bridge/cross-transfer](https://nft-bridge.org/transfer)
+Visit the [nft-bridge.net/](https://nft-bridge.net/).
 
 Connect your wallet.
 
-Pick the NFT type you want to transfer.
-Pick the NFT in the list.
+Go to [Register/](https://nft-bridge.net/register) page.
 
-Click on transfer and select the destination among the options.
+Switch to the blockchain network where your NFT deployed in.
 
-If the destination is the original blockchain, then NFT will be unwrapped.
-Or, if its other blockchain, then NFT will be minted and burned in the source blockchain.
+At the *register* page, pass the NFT address in the edit field.
+
+Click the button to register the nft.
+
+## 2. Set up a linked NFT.
+> **Only owner of NFT contract allowed.**
+
+> **NFT Must be registered. If you didn't register,
+> then go to [1. register](#1-register) step first.**
+
+The second step is to set up a linked NFT.
+The linked NFT is your NFT on another chain connected to the wrapper.
+
+During the setup, the bridge deploys the NFT on another blockchain,
+then lints the NFT address with the wrapper.
+
+The linted NFT and the wrapper are composing a Bridged NFT that
+works directly without third party smartcontracts.
+
+To set up, go to the [nft-bridge.net/admin](https://nft-bridge.net/admin) page.
+
+Select the NFT from the registered NFTs list. Click on "Setup".
+
+In the popup, select the target blockchain and submit the transaction.
+
+:sparkler: **Congratulations.** It's time to bridge the nft.
+
+## 3. Bridge
+> :sunglasses: **Anyone who has NFT**
+
+To bridge, we created a simplified dashboard.
+*But you can create your own, or interact with the smartcontract directly*.
+
+Visit the [nft-bridge.net] website. Connect your wallet.
+Visit the [nft-bridge/bridge] web page.
+
+To bridge, select the NFT from the list.
+
+Define the destination blockchain, then click to submit button.
+
+If it's your first interaction, then approve NFT Bridge to use your NFTs.
+
+Then click on the submit.
+
+After successful transaction you will see the Bridged NFT, and your NFT was disappeared.
+
+Check your balance on the destination chain, and you will see your NFT there.
+
+### 3.2 Multi chain bridging
+NFT Bridge supports multi-chains.
+
+*The admin of the NFT can setup a linked NFT by following (#2-setup)[#2-setup] step.*
+
+The steps are identical as in the [#3-bridge](#3-bridge) step.
+
+You just need to switch your network to the place where you have your NFTs in.
+
+If you select the original blockchain as the destination, then
+NFT will be unwrapped and transferred to your balance.
 
 ---
 # Structure
-The NFT Bridge has only smartcontracts and nothing else.
+This NFT Bridge is consisted of **smartcontracts** and **web ui** only.
+No backend, nothing else.
 
 
 ## Smartcontracts
-It has three identical smartcontracts in every supported blockchains.
+The project consists several smartcontracts.
+They all must be identical in every chain.
 
-### Linked NFT
-The NFT copy of the original NFT on other blockchains.
+The smartcontract methods can be categorized into two functionalities.
+The functionalities are defined in the [Getting-Started](#getting-started) as steps 1..3.
 
-### Wrapped NFT
-The smartcontract that froze the original NFT.
-Then connects the original nft with linked NFTs on other chains.
+Obviously the most important functionality is the Bridging one.
+The bridging functionality is configured as almost identical two smartcontracts.
 
-### Registrar
-A platform that creates Linked NFT and Wrapped NFT instances for the NFTs.
-This smartcontract makes sure that only owner of the NFT can register NFTs.
+The second functionality is automatic deploying of the NFTs and linting them.
 
-## Relationship
-The [registrars](#registrar) are able to create the Wrapped NFTs and Linked NFTs.
-The registrars also responsible to link the linked nfts across the blockchains.
+### Smartcontracts for bridging functionality
 
-The [Linked NFTs](#linked-nft) can talk to Wrapped NFTs and Linked NFTs.
+#### Wrapped NFT
+> Source Code: [WrappedNft.sol](./packages/hardhat/contracts/WrappedNft.sol)
 
-The [Wrapped NFTs](#wrapped-nft) can talk to Linked NFTs only.
+The smartcontract locks the original NFT.
+Then sends a message across blockchains to mint the NFT on another blockchain.
+
+#### Linked NFT
+> Source Code: [LinkedNft.sol](./packages/hardhat/contracts/LinkedNft.sol)
+
+Linked NFT is copy of the original NFT on other blockchains.
+The difference from the original NFT is that this NFT comes with built-in bridging functionality.
+
+### Smartcontracts for setup functionality
+
+#### Registrar
+> Source Code: [Registrar.sol](./packages/hardhat/contracts/Registrar.sol)
+
+A smartcontract that creates the [WrappedNFT](#wrapped-nft).
+It also has the functionality to bridge NFTs across the blockchains.
+
+Only admin of the NFT is able to interact with this smartcontract.
+
+#### LinkedFactory
+> Source Code: [LinkedFactory.sol](./packages/hardhat/contracts/LinkedFactory.sol)
+
+A smartcontract that creates the [LinkedNft](#linked-nft).
+This smartcontract is not callable. 
+Only [registrar](#registrar) is able to invoke it from other blockchain.
+
 
 ## API
 The list of methods
@@ -134,29 +210,36 @@ The list of methods
 | Wrapped NFT   | Oracle     | xTransferFrom | Mints the NFT and transfers to the given address                | Accepts the address of the new owner                                          |
 
 Permissions
- * NftAdmin &ndash; an owner or the deployer of the nft.
- * Admin &ndash; a deployer of the Nft Bridge
- * Oracle &ndash; a chainlink CCIP oracle
- * Anyone &ndash; owner of the nft.
+* NftAdmin &ndash; an owner or the deployer of the nft.
+* Admin &ndash; a deployer of the Nft Bridge
+* Oracle &ndash; a chainlink CCIP oracle
+* Anyone &ndash; owner of the nft.
 
 ---
-# Supported Blockchains
-Since it's core underlying product is CCIP, then it supports the same testnets.
+# Bridging Demo 
+I will create a simple NFT on remix on Sepolia. I mint two nfts to the user.
 
-* Sepolia Testnet
-* Mumbai Testnet
-* Fuji Testnet
-* BNB Chain Testnet
+Then I will go to the website dashboard and set it as setup it to Mumbai.
 
----
-# Example for a Demo
-For example, I will create a simple NFT on remix using the LinkedNFT. After the deployment, let's mint the first NFT.
-As you see, the NFT will be visible on various blockchains. Let's transfer the NFT on the second blockchain by selling it on OpenSea.
-When another account buys the NFT, he will have it on both chains.
+Once it's done, I will switch on dashboard to the bridge.
 
-## Version 2.1
-A demo without cross-chain availability.
+In the bridge, I approve.
+Then I send my first nft to Mumbai.
 
-## Version 2.2
-A demo with the chainlink CCIP
+On Mumbai network, I put the NFT on sale on OpenSea.
+
+Switching account, then buying the NFT it.
+
+I transfer the NFT to Sepolia network again.
+
+I see unwrapped NFT in my account.
+
+## Multi-chain bridging
+In the dashboard, I set up the NFT to Fuji testnet.
+
+I bridge the NFT to Fuji.
+Switching the network, I bridge the NFT to Mumbai.
+Switching the network, I bridge the NFT from Mumbai to Sepolia.
+
+The unwrapped NFT is in my account again.
 

@@ -29,11 +29,18 @@ contract Registrar is Ownable, CCIPReceiver {
 
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
+	// original nft => owner|creator
+	mapping(address => address) public nftAdmin;
 
 	uint64 private tempChainId;
 
 	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
 	event Linked(uint64 sourceSelector, address originalAddr, address nftAddress);
+
+	modifier onlyNftAdmin(address nftAddr) {
+		require(msg.sender == nftAdmin[nftAddr], "not admin");
+		_;
+	}
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor (
@@ -86,6 +93,8 @@ contract Registrar is Ownable, CCIPReceiver {
 		address created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
 		require(wrappedNft == created, "address mismatch");
 		require(wrappedNft.code.length > 0, "not created");
+
+		nftAdmin[nftAddr] = msg.sender;
 	}
 
 	/**
@@ -99,7 +108,7 @@ contract Registrar is Ownable, CCIPReceiver {
 	 *
 	 * Setup of additional chains moved to it's own function
 	 */
-	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external payable {
+	function setup(address nftAddr, bytes32 deployTx, uint64[] calldata selectors) external onlyNftAdmin(nftAddr) payable {
 		require(nftAddr.code.length > 0, "not_deployed");
 
 		bool ownable = getNftAdmin(nftAddr, msg.sender);

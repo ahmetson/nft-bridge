@@ -16,7 +16,7 @@ import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
  * todo Unwrapping Wrapped NFTs is not possible in this version.
  */
 contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
-    ERC721 public source;
+    ERC721 public originalNft;
 
     address public registrar;
     address public router;
@@ -35,8 +35,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 
     modifier nftOwner(uint256 nftId) {
-        require(source.ownerOf(nftId) == msg.sender, "not owner");
-        require(source.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");
+        require(originalNft.ownerOf(nftId) == msg.sender, "not owner");
+        require(originalNft.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");
         _;
     }
 
@@ -60,7 +60,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         address _router) ERC721(_name, _symbol) CCIPReceiver(_router) {
         require(_source != address(0), "ZERO_ADDRESS");
 
-        source = ERC721(_source);
+        originalNft = ERC721(_source);
 
         registrar = msg.sender;
     }
@@ -142,9 +142,9 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
     function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
         require(ownerOf(nftId) == address(0), "wrapped nft exists");
-        source.safeTransferFrom(msg.sender, address(this), nftId);
+        originalNft.safeTransferFrom(msg.sender, address(this), nftId);
 
-        string memory uri = source.tokenURI(nftId);
+        string memory uri = originalNft.tokenURI(nftId);
 
         // pre-compute the linked address
         address linkedAddr = linkedNfts[chainSelector];
@@ -177,7 +177,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     // Only a router can call it.
     function unBridge(uint256 nftId, address to) internal {
         _burn(nftId);
-        source.safeTransferFrom(address(this), to, nftId);
+        originalNft.safeTransferFrom(address(this), to, nftId);
     }
 
     // Call it if it's the owner, and it will withdraw from other blockchain.

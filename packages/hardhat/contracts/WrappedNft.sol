@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import { IRouterClient } from "./chainlink/ccip/interfaces/IRouterClient.sol";
 import { Client } from "./chainlink/ccip/libraries/Client.sol";
 import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
-import "./RegistrarInterface.sol";
 
 /**
  * @notice WrappedNft is an NFT on the Source Blockchain, which locks the original NFT, and disables transferring it.
@@ -19,7 +18,7 @@ import "./RegistrarInterface.sol";
 contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     ERC721 public source;
 
-    RegistrarInterface public registrar;
+    address public registrar;
     address public router;
     uint64 public selector;
 
@@ -44,7 +43,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     }
 
     modifier onlyFactory() {
-        require(msg.sender == address(registrar));
+        require(msg.sender == registrar);
         _;
     }
 
@@ -66,7 +65,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
         source = ERC721(_source);
 
-        registrar = RegistrarInterface(msg.sender);
+        registrar = msg.sender;
     }
 
     // todo add registerNetwork
@@ -190,8 +189,8 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
-        address sourceRegistrar = abi.decode(message.sender, (address));
-        require(registrar.isValidDestRegistrar(message.sourceChainSelector, sourceRegistrar), "not registrar");
+        address sourceLinkedNft = abi.decode(message.sender, (address));
+        require(linkedNfts[message.sourceChainSelector] == sourceLinkedNft, "not valid source");
 
         (bool success, ) = address(this).call(message.data);
         require(success);

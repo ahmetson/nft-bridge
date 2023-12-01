@@ -7,6 +7,6 @@ pragma solidity >=0.8.0 <0.9.0;
  * @author Medet Ahmetson
  */
 interface RegistrarInterface {
-	function linkedNfts(uint64, address) external view returns (address);
+	// Is the address (sender) is valid when the message received from the registrar
 	function isValidDestRegistrar(uint64, address) external view returns(bool);
 }

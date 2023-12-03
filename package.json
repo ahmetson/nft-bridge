@@ -14,6 +14,8 @@
     "fork": "yarn workspace nft-bridge-smartcontracts fork",
     "deploy": "yarn workspace nft-bridge-smartcontracts deploy",
     "verify": "yarn workspace nft-bridge-smartcontracts verify",
+    "verify-custom": "yarn workspace nft-bridge-smartcontracts verify-custom",
+    "set-factory": "yarn workspace nft-bridge-smartcontracts set-factory",
     "compile": "yarn workspace nft-bridge-smartcontracts compile",
     "generate": "yarn workspace nft-bridge-smartcontracts generate",
     "hardhat:lint": "yarn workspace nft-bridge-smartcontracts lint",

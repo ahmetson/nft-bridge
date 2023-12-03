@@ -31,22 +31,22 @@ export const menuLinks: HeaderMenuLink[] = [
   },
   {
     label: "Bridge",
-    href: "/debug",
+    href: "/bridge",
     icon: <FaceSmileIcon className="h-4 w-4" />,
   },
   {
     label: "Approve",
-    href: "/debug",
+    href: "/approve",
     icon: <PowerIcon className="h-4 w-4" />,
   },
   {
     label: "Setup",
-    href: "/debug",
+    href: "/setup",
     icon: <GlobeAltIcon className="h-4 w-4" />,
   },
   {
     label: "Register",
-    href: "/debug",
+    href: "/register",
     icon: <PuzzlePieceIcon className="h-4 w-4" />,
   },
 ];

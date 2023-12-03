@@ -31,7 +31,6 @@ contract Registrar is Ownable {
 
 	struct Network {
 		address router; 	// Chainlink CCIP router
-		address registrar; 	// Registrar on another blockchain
 		address factory;
 	}
 
@@ -67,17 +66,6 @@ contract Registrar is Ownable {
 		for (uint64 i = 0; i < destSelectors.length; i++) {
 			destNetworks[destSelectors[i]].router = destRouters[i];
 		}
-	}
-
-	/**
-	 * Set's the registrar on other blockchain.
-	 */
-	function setRegistrar(uint64 _selector, address _registrar) external onlyOwner {
-		require(destNetworks[_selector].router != address(0), "unsupported network");
-		// Enable in production
-		// require(destNetworks[_selector].registrar == address(0), "registrar exists");
-
-		destNetworks[_selector].registrar = _registrar;
 	}
 
 	/// @notice sets a factory in this network.
@@ -156,7 +144,7 @@ contract Registrar is Ownable {
 	/// @param nftAddr the original NFT address
 	/// @return the native token that user can retrieve back
 	function createLinkedNft(address nftAddr, uint64 destSelector) internal returns (uint256) {
-		WrappedNft wrappedNft = WrappedNft(nftAddr);
+		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
 		// The created nft will be linked to all previous nfts that we have.
 		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
 

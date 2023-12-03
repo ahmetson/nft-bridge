@@ -45,7 +45,7 @@ task("set-factory")
     console.log(`There are ${destFactories.length} factories to set`);
     for (const factory of destFactories) {
       const networkParams = await registrar.functions["destNetworks"](factory.selector);
-      if (networkParams.factory !== zeroAddr) {
+      if (networkParams.factory != zeroAddr) {
         console.log(`Skipping ${factory.chainId} chain's factory as set`);
         continue;
       }

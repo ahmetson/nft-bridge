@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { NextPage } from "next";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { BuildingStorefrontIcon, FaceSmileIcon, GlobeAltIcon, LockOpenIcon } from "@heroicons/react/24/outline";
 import { MetaHeader } from "~~/components/MetaHeader";
 
 const Home: NextPage = () => {
@@ -10,47 +10,82 @@ const Home: NextPage = () => {
       <div className="flex items-center flex-col flex-grow pt-10">
         <div className="px-5">
           <h1 className="text-center mb-8">
-            <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
+            <span className="block text-4xl font-bold">NFT Bridge</span>
+            <span className="block text-2xl mb-2">Powered by Chainlink CCIP</span>
           </h1>
           <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/pages/index.tsx
-            </code>
+            An NFT Bridge, secured by decentralized Oracles from a
+            <Link href={"https://chain.link/cross-chain"} className="italic bg-base-300 font-bold max-w-full ml-1">
+              Unicorn
+            </Link>
           </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
+          <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <LockOpenIcon className="h-8 w-8 fill-secondary" />
+              <p>Anyone can bridge NFTs, because we are permission-less.</p>
+            </div>
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <BuildingStorefrontIcon className="h-8 w-8 fill-secondary" />
+              <p>No code, no setup to make the NFT cross-chain.</p>
+            </div>
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <GlobeAltIcon className="h-8 w-8 fill-secondary" />
+              <p>A built in UI dashboard</p>
+            </div>
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <FaceSmileIcon className="h-8 w-8 fill-secondary" />
+              <p>No fee, its for free</p>
+            </div>
+          </div>
+          <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
+            <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <p>Are you a Project Owner?</p>
+              <button className="btn btn-secondary">Setup</button>
+            </div>
+            <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <p>Are you an NFT Owner?</p>
+              <button className="btn btn-primary">Primary</button>
+            </div>
+          </div>
         </div>
 
         <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
           <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <BugAntIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Tinker with your smart contract using the{" "}
-                <Link href="/debug" passHref className="link">
-                  Debug Contract
-                </Link>{" "}
-                tab.
-              </p>
+            <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+              <h4>Watch the showcase</h4>
+              <div className=" aspect-video ">
+                <iframe
+                  width="560"
+                  height="315"
+                  src="https://www.youtube.com/embed/HTLVvPv4gSA?si=-TC0dZLGHrAG0c9p"
+                  title="YouTube video player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                ></iframe>
+              </div>
             </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
+          </div>
+        </div>
+
+        <div className="flex-grow bg-base-200 w-full px-8 py-12">
+          <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
+            <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
               <p>
-                Explore your local transactions with the{" "}
-                <Link href="/blockexplorer" passHref className="link">
-                  Block Explorer
-                </Link>{" "}
-                tab.
+                The code is{" "}
+                <Link
+                  className="italic bg-base-300 font-bold max-w-full ml-1"
+                  href={"https://github.com/ahmetson/nft-bridge"}
+                >
+                  Open Source
+                </Link>
+              </p>
+              <p>
+                Made for the{" "}
+                <Link
+                  className="italic bg-base-300 font-bold max-w-full ml-1"
+                  href={"https://devpost.com/software/nft-bridge"}
+                >
+                  Chainlink Hackathon
+                </Link>
               </p>
             </div>
           </div>

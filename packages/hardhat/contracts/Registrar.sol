@@ -109,7 +109,7 @@ contract Registrar is Ownable {
 		}
 
 		string memory wrappedName = string.concat("Bridged", SourceNftLib.originalName(nftAddr));
-		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalName(nftAddr));
+		string memory wrappedSymbol = string.concat("b", SourceNftLib.originalSymbol(nftAddr));
 
 		WrappedNft created = new WrappedNft{salt: generateSalt(address(this), nftAddr)}(wrappedName, wrappedSymbol, nftAddr, router);
 
@@ -131,6 +131,7 @@ contract Registrar is Ownable {
 	function setup(address nftAddr, uint64 destSelector) external onlyNftAdmin(nftAddr) payable {
 		address destFactory = destNetworks[destSelector].factory;
 		require(destFactory != address(0), "no destination factory");
+		require(factory != address(0), "no factory");
 
 		// add to the wrappedNft the selectors.
 		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);

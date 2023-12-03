@@ -88,6 +88,7 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
         ERC721(_name, _symbol) CCIPReceiver(_router) {
         factory = msg.sender;
         originalNft = _source;
+        router = _router;
     }
 
     function setupOne(uint64 linkedSelector, address linkedNftAddr) public onlyFactoryOrSource {

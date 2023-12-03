@@ -80,6 +80,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         originalNft = ERC721(_source);
 
         registrar = msg.sender;
+        router = _router;
     }
     /// @notice registers itself as the first element of NFTs supported chains.
     /// @dev this method must be called first.
@@ -143,7 +144,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     }
 
     function allNfts() external view returns(uint64[] memory, address[] memory) {
-        address[] memory linkedNftAddrs = new address[](nftSupportedChains.length + 1);
+        address[] memory linkedNftAddrs = new address[](nftSupportedChains.length);
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             linkedNftAddrs[i] = linkedNfts[nftSupportedChains[i]];
         }

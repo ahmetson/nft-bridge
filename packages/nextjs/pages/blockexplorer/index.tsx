@@ -5,13 +5,13 @@ import { PaginationButton } from "~~/components/blockexplorer/PaginationButton";
 import { SearchBar } from "~~/components/blockexplorer/SearchBar";
 import { TransactionsTable } from "~~/components/blockexplorer/TransactionsTable";
 import { useFetchBlocks } from "~~/hooks/scaffold-eth";
-import { getTargetNetwork, notification } from "~~/utils/scaffold-eth";
+import { getTargetNetworks, notification } from "~~/utils/scaffold-eth";
 
 const Blockexplorer: NextPage = () => {
   const { blocks, transactionReceipts, currentPage, totalBlocks, setCurrentPage, error } = useFetchBlocks();
 
   useEffect(() => {
-    if (getTargetNetwork().id === hardhat.id && error) {
+    if (getTargetNetworks()[0].id === hardhat.id && error) {
       notification.error(
         <>
           <p className="font-bold mt-0 mb-1">Cannot connect to local provider</p>
@@ -26,20 +26,20 @@ const Blockexplorer: NextPage = () => {
       );
     }
 
-    if (getTargetNetwork().id !== hardhat.id) {
+    if (getTargetNetworks()[0].id !== hardhat.id) {
       notification.error(
         <>
           <p className="font-bold mt-0 mb-1">
             <code className="italic bg-base-300 text-base font-bold"> targeNetwork </code> is not localhost
           </p>
           <p className="m-0">
-            - You are on <code className="italic bg-base-300 text-base font-bold">{getTargetNetwork().name}</code> .This
-            block explorer is only for <code className="italic bg-base-300 text-base font-bold">localhost</code>.
+            - You are on <code className="italic bg-base-300 text-base font-bold">{getTargetNetworks()[0].name}</code>{" "}
+            .This block explorer is only for <code className="italic bg-base-300 text-base font-bold">localhost</code>.
           </p>
           <p className="mt-1 break-normal">
             - You can use{" "}
-            <a className="text-accent" href={getTargetNetwork().blockExplorers?.default.url}>
-              {getTargetNetwork().blockExplorers?.default.name}
+            <a className="text-accent" href={getTargetNetworks()[0].blockExplorers?.default.url}>
+              {getTargetNetworks()[0].blockExplorers?.default.name}
             </a>{" "}
             instead
           </p>

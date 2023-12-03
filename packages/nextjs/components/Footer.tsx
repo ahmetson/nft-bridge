@@ -1,20 +1,18 @@
 import React from "react";
 import Link from "next/link";
-import { hardhat } from "viem/chains";
 import { CurrencyDollarIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { SwitchTheme } from "~~/components/SwitchTheme";
-import { BuidlGuidlLogo } from "~~/components/assets/BuidlGuidlLogo";
+import { AhmetsonLogo } from "~~/components/assets/AhmetsonLogo";
 import { Faucet } from "~~/components/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
 
 /**
  * Site footer
  */
 export const Footer = () => {
   const nativeCurrencyPrice = useGlobalState(state => state.nativeCurrencyPrice);
-  const isLocalNetwork = getTargetNetwork().id === hardhat.id;
+  const isLocalNetwork = false;
 
   return (
     <div className="min-h-0 py-5 px-1 mb-11 lg:mb-0">
@@ -53,22 +51,28 @@ export const Footer = () => {
             <span>·</span>
             <div className="flex justify-center items-center gap-2">
               <p className="m-0 text-center">
-                Built with <HeartIcon className="inline-block h-4 w-4" /> at
+                Delivered with <HeartIcon className="inline-block h-4 w-4" /> by
               </p>
               <a
                 className="flex justify-center items-center gap-1"
-                href="https://buidlguidl.com/"
+                href="https://github.com/ahmetson"
                 target="_blank"
                 rel="noreferrer"
               >
-                <BuidlGuidlLogo className="w-3 h-5 pb-1" />
-                <span className="link">BuidlGuidl</span>
+                <AhmetsonLogo className="w-3 h-5 pb-1" />
+                <span className="link">Medet Ahmetson</span>
               </a>
             </div>
             <span>·</span>
             <div className="text-center">
-              <a href="https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA" target="_blank" rel="noreferrer" className="link">
+              <a href="https://www.linkedin.com/in/ahmetson/" target="_blank" rel="noreferrer" className="link">
                 Support
+              </a>
+            </div>
+            <span>·</span>
+            <div className="text-center">
+              <a href="https://github.com/ahmetson/nft-bridge" target="_blank" rel="noreferrer" className="link">
+                Source Code
               </a>
             </div>
           </div>

@@ -14,8 +14,8 @@ type MetaHeaderProps = {
 const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/` : "/";
 
 export const MetaHeader = ({
-  title = "Scaffold-ETH 2 App",
-  description = "Built with 🏗 Scaffold-ETH 2",
+  title = "NFT Bridge",
+  description = "Bridge any token without setup and for free",
   image = "thumbnail.jpg",
   twitterCard = "summary_large_image",
   children,
@@ -36,6 +36,7 @@ export const MetaHeader = ({
           <meta name="description" content={description} />
           <meta property="og:description" content={description} />
           <meta name="twitter:description" content={description} />
+          <meta name="author" content="Medet who loves Vladlena" />
         </>
       )}
       {image && (

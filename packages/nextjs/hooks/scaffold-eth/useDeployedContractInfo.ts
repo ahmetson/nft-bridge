@@ -10,11 +10,11 @@ import { Contract, ContractCodeStatus, ContractName, contracts } from "~~/utils/
  */
 export const useDeployedContractInfo = <TContractName extends ContractName>(contractName: TContractName) => {
   const isMounted = useIsMounted();
-  const deployedContract = contracts?.[scaffoldConfig.targetNetwork.id]?.[
+  const deployedContract = contracts?.[scaffoldConfig.targetNetworks[0].id]?.[
     contractName as ContractName
   ] as Contract<TContractName>;
   const [status, setStatus] = useState<ContractCodeStatus>(ContractCodeStatus.LOADING);
-  const publicClient = usePublicClient({ chainId: scaffoldConfig.targetNetwork.id });
+  const publicClient = usePublicClient({ chainId: scaffoldConfig.targetNetworks[0].id });
 
   useEffect(() => {
     const checkContractDeployment = async () => {

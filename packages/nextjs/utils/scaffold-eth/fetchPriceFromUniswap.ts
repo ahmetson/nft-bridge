@@ -3,7 +3,7 @@ import { Pair, Route } from "@uniswap/v2-sdk";
 import { createPublicClient, http, parseAbi } from "viem";
 import { mainnet } from "wagmi";
 import scaffoldConfig from "~~/scaffold.config";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
+import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -17,7 +17,7 @@ const ABI = parseAbi([
 ]);
 
 export const fetchPriceFromUniswap = async (): Promise<number> => {
-  const configuredNetwork = getTargetNetwork();
+  const configuredNetwork = getTargetNetworks()[0];
   if (
     configuredNetwork.nativeCurrency.symbol !== "ETH" &&
     configuredNetwork.nativeCurrency.symbol !== "SEP" &&

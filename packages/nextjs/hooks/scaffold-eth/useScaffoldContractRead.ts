@@ -1,7 +1,7 @@
 import type { ExtractAbiFunctionNames } from "abitype";
 import { useContractRead } from "wagmi";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
+import { getTargetNetworks } from "~~/utils/scaffold-eth";
 import {
   AbiFunctionReturnType,
   ContractAbi,
@@ -29,7 +29,7 @@ export const useScaffoldContractRead = <
   const { data: deployedContract } = useDeployedContractInfo(contractName);
 
   return useContractRead({
-    chainId: getTargetNetwork().id,
+    chainId: getTargetNetworks()[0].id,
     functionName,
     address: deployedContract?.address,
     abi: deployedContract?.abi,

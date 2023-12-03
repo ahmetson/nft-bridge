@@ -1,11 +1,11 @@
 import { formatEther } from "viem";
 import { TransactionHash } from "~~/components/blockexplorer/TransactionHash";
 import { Address } from "~~/components/scaffold-eth";
-import { TransactionWithFunction, getTargetNetwork } from "~~/utils/scaffold-eth";
+import { TransactionWithFunction, getTargetNetworks } from "~~/utils/scaffold-eth";
 import { TransactionsTableProps } from "~~/utils/scaffold-eth/";
 
 export const TransactionsTable = ({ blocks, transactionReceipts }: TransactionsTableProps) => {
-  const targetNetwork = getTargetNetwork();
+  const targetNetwork = getTargetNetworks()[0];
 
   return (
     <div className="flex justify-center px-4 md:px-0">

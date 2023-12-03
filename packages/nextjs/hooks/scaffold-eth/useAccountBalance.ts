@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useBalance } from "wagmi";
 import { useGlobalState } from "~~/services/store/store";
-import { getTargetNetwork } from "~~/utils/scaffold-eth";
+import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 export function useAccountBalance(address?: string) {
   const [isEthBalance, setIsEthBalance] = useState(true);
@@ -15,7 +15,7 @@ export function useAccountBalance(address?: string) {
   } = useBalance({
     address,
     watch: true,
-    chainId: getTargetNetwork().id,
+    chainId: getTargetNetworks()[0].id,
   });
 
   const onToggleBalance = useCallback(() => {

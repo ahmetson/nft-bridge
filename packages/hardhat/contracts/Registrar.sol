@@ -42,7 +42,7 @@ contract Registrar is Ownable {
 
 	uint64 private tempChainId;
 
-	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
+	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId, bytes data);
 	event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 	event Linked(address originalAddr, address nftAddress);
 
@@ -169,7 +169,7 @@ contract Registrar is Ownable {
 
 		bytes32 messageId = IRouterClient(router).ccipSend{value: fee}(destSelector, message);
 
-		emit X_Setup(destSelector, nftAddr, messageId);
+		emit X_Setup(destSelector, nftAddr, messageId, data);
 		return msg.value - fee;
 	}
 

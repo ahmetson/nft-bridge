@@ -56,7 +56,7 @@ export function contractAddress(chainId: string, name: string): string {
   if (Deployments[chainId] === undefined) {
     return "";
   }
-  console.log(`Contract ${name} from ${chainId}\n`)
+  console.log(`Contract ${name} from ${chainId}\n`);
   const deployments = Deployments[chainId][0];
   if (deployments.contracts[name] === undefined) {
     return "";

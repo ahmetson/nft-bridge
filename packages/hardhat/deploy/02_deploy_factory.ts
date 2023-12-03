@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { one, listSelectors, listRouters } from "../scripts/params";
+import { saveConstructorArgs } from "../scripts/constructor/set";
 
 /**
  * Deploys a contract named "Registrar.sol" using the deployer account and
@@ -16,10 +17,12 @@ const registrarContract: DeployFunction = async function (hre: HardhatRuntimeEnv
   const networkParams = one(chainId);
   const destSelectors = listSelectors(chainId);
   const destRouters = listRouters(chainId);
+  const constructorArgs = [networkParams.selector, networkParams.router, destSelectors, destRouters];
+  saveConstructorArgs(hre.network.name, "LinkedFactory", constructorArgs);
   await deploy("LinkedFactory", {
     from: deployer,
     // Contract constructor arguments
-    args: [networkParams.selector, networkParams.router, destSelectors, destRouters],
+    args: constructorArgs,
     log: true,
   });
 };

@@ -138,6 +138,12 @@ const config: HardhatUserConfig = {
       apiKey: `${etherscanApiKey}`,
     },
   },
+  etherscan: {
+    apiKey: {
+      sepolia: etherscanApiKey,
+      polygonMumbai: process.env.POLYGONSCAN_API_KEY as string,
+    },
+  },
 };
 
 export default config;

@@ -74,4 +74,4 @@ export function chainIds(exceptChainId: string): Array<string> {
   return chainIds;
 }
 
-export const zeroAddr = "0x0000000000000000000000000000000000000000";
+export const zeroAddr: string = "0x0000000000000000000000000000000000000000";

@@ -37,6 +37,4 @@ const registrarContract: DeployFunction = async function (hre: HardhatRuntimeEnv
 
 export default registrarContract;
 
-// Tags are useful if you have multiple deploy files and only want to run one of them.
-// e.g. yarn deploy --tags Registrar.sol
-registrarContract.tags = ["Registrar.sol"];
+registrarContract.tags = ["Registrar"];

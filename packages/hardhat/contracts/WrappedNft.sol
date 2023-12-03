@@ -165,7 +165,7 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     }
 
     function bridge(uint256 nftId, uint64 chainSelector) external nftOwner(nftId) validDestination(chainSelector) payable {
-        require(ownerOf(nftId) == address(0), "wrapped nft exists");
+        require(_ownerOf(nftId) == address(0), "wrapped nft exists");
         originalNft.safeTransferFrom(msg.sender, address(this), nftId);
 
         string memory uri = originalNft.tokenURI(nftId);

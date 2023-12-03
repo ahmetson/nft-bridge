@@ -32,6 +32,11 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 	event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 	event Linked(address originalAddr, address nftAddress);
 	event Received(bytes sourceRouter, bytes32 messageId, uint64 sourceChainSelector);
+	event LinkNftCreated(bytes32 salt, string name, string symbol, address nftAddr, address router);
+	event LintedNfts(uint64[] selectors, address[] linkedNftAddrs);
+
+	event LinkError(string reason);
+	event UnknownError(string reason);
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor (
@@ -82,14 +87,25 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		string memory symbol,
 		uint64[] memory selectors,
 		address[] memory linkedNftAddrs
-	) internal {
-		LinkedNft linkedNft = new LinkedNft{salt: generateSalt(address(this), nftAddr)}(name, symbol, nftAddr, router);
-		// first network selector is the original chain. it must be same everywhere.
-		// so let's keep the order in all blockchains.
-		linkedNft.setup(selectors, linkedNftAddrs);
-		linkedNft.setupOne(networkSelector, address(linkedNft));
+	) public {
+		bytes32 salt = generateSalt(address(this), nftAddr);
+		emit LinkNftCreated(salt, name, symbol, nftAddr, router);
+		emit LintedNfts(selectors, linkedNftAddrs);
 
-		emit Linked(nftAddr, address(linkedNft));
+		try new LinkedNft{salt: salt}(name, symbol, nftAddr, router) returns (LinkedNft linkedNft) {
+			// first network selector is the original chain. it must be same everywhere.
+			// so let's keep the order in all blockchains.
+			linkedNft.setup(selectors, linkedNftAddrs);
+			linkedNft.setupOne(networkSelector, address(linkedNft));
+
+			emit Linked(nftAddr, address(linkedNft));
+		} catch Error(string memory reason) {
+			// catch failing revert() and require()
+			emit LinkError(string(reason));
+		} catch (bytes memory reason) {
+			// catch failing assert()
+			emit UnknownError(string(reason));
+		}
 	}
 
 	function generateSalt(address _registrar, address _nftAddr) public pure returns(bytes32) {

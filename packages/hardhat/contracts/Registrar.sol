@@ -152,11 +152,15 @@ contract Registrar is Ownable {
 		bytes memory data = abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
 			nftAddr, wrappedNft.name(), wrappedNft.symbol(), selectors, linkedNftAddrs);
 
+		Client.EVMExtraArgsV1 memory extra;
+		extra.gasLimit = 4000000;
+		extra.strict = false;
+
 		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
 			receiver: abi.encode(destNetworks[destSelector].factory),
 			data: data,
 			tokenAmounts: new Client.EVMTokenAmount[](0),
-			extraArgs: "",
+			extraArgs: Client._argsToBytes(extra),
 			feeToken: address(0)
 		});
 

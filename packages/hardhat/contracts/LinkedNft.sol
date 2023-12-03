@@ -109,7 +109,7 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
 
     /// @notice Mint a new NFT from the source.
     function bridge(uint256 nftId, address to, string memory uri) public onlySource {
-        require(ownerOf(nftId) == address(0), "already minted");
+        require(_ownerOf(nftId) == address(0), "already minted");
 
         _mint(to, nftId);
         _setTokenURI(nftId, uri);

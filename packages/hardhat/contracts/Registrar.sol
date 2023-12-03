@@ -7,7 +7,6 @@ import { Client } from "./chainlink/ccip/libraries/Client.sol";
 import { WrappedNft } from "./WrappedNft.sol";
 import { SourceNftLib } from "./SourceNftLib.sol";
 import { LinkedFactoryInterface } from "./LinkedFactoryInterface.sol";
-import {LinkedFactory} from "./LinkedFactory.sol";
 
 /**
  * A Registrar is responsible to register NFTs in original

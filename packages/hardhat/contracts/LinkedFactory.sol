@@ -23,37 +23,28 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		address registrar; 	// Registrar on another blockchain
 	}
 
-	uint64[] public destNetworkSelectors;
-
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
-	// original nft => owner|creator
-	mapping(address => address) public nftAdmin;
-	mapping(address => address) public wrappers; // no need to pre-compute everytime
 
 	uint64 private tempChainId;
 
 	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
 	event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 	event Linked(address originalAddr, address nftAddress);
-
-	modifier onlyNftAdmin(address nftAddr) {
-		require(msg.sender == nftAdmin[nftAddr], "not admin");
-		_;
-	}
+	event Received(bytes sourceRouter, bytes32 messageId, uint64 sourceChainSelector);
 
 	// Todo get chainlink receiver and pass networkParams.router
 	constructor (
 		uint64 _networkSelector,
 		address _router,
 		uint64[] memory destSelectors,
-		address[] memory destRouters) Ownable(msg.sender) CCIPReceiver(_router) {
+		address[] memory destRouters
+	) Ownable(msg.sender) CCIPReceiver(_router) {
 
 		require(destSelectors.length == destRouters.length, "mismatch length");
 
 		router = _router;
 		networkSelector = _networkSelector;
-		destNetworkSelectors = destSelectors;
 
 		for (uint64 i = 0; i < destSelectors.length; i++) {
 			destNetworks[destSelectors[i]].router = destRouters[i];
@@ -99,23 +90,6 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		linkedNft.setupOne(networkSelector, address(linkedNft));
 
 		emit Linked(nftAddr, address(linkedNft));
-	}
-
-	// Returns true if the nft is Ownable and admin is the owner.
-	// If not ownable then returns false. If it's ownable and owner is not the admin reverts
-	function getNftAdmin(address nftAddr, address admin) public view returns (bool) {
-		Ownable ownable = Ownable(nftAddr);
-		// Even if the type return type is different, it will return true.
-		// If it doesn't implement the owner then returns the last catch.
-		try ownable.owner() returns (address owner) {
-			require(owner == admin, "owner != admin");
-		} catch Error(string memory) { // contract reverts
-			return false;
-		} catch { // contract has no owner
-			return false;
-		}
-
-		return true;
 	}
 
 	function generateSalt(address _registrar, address _nftAddr) public pure returns(bytes32) {

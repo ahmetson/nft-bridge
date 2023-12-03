@@ -54,4 +54,16 @@ task("set-factory")
       await tx.wait();
       console.log(`Setting factory for ${factory.chainId} completed!`);
     }
+    let factoryAddr = await registrar.functions.factory();
+    if (factoryAddr == zeroAddr) {
+      factoryAddr = contractAddress(chainId, "LinkedFactory");
+      if (factoryAddr.length === 0) {
+        console.warn(`The Registrar in '${hre.network.name}' network requires a factory but it's not deployed`);
+        return;
+      }
+      const tx = await registrar.functions["setFactory(address)"](factoryAddr);
+      console.log(`Setting factory for ${hre.network.name}, deploying ${tx.hash}...`);
+      await tx.wait();
+      console.log(`Setting factory for ${hre.network.name} completed!`);
+    }
   });

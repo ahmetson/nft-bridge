@@ -100,6 +100,14 @@ export function getBlockExplorerAddressLink(network: chains.Chain, address: stri
   return `${blockExplorerBaseURL}/address/${address}`;
 }
 
+export function getTargetById(id: number): chains.Chain & Partial<ChainAttributes> {
+  const targets = getTargetNetworks();
+  const i = targets.findIndex(configuredNetwork => {
+    return configuredNetwork.id === id;
+  });
+  return targets[i];
+}
+
 /**
  * @returns targetNetworks object consisting targetNetworks from scaffold.config and extra network metadata
  */

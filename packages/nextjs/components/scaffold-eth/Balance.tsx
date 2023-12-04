@@ -1,5 +1,6 @@
+import { useNetwork } from "wagmi";
 import { useAccountBalance } from "~~/hooks/scaffold-eth";
-import { getTargetNetworks } from "~~/utils/scaffold-eth";
+import { getTargetById } from "~~/utils/scaffold-eth";
 
 type BalanceProps = {
   address?: string;
@@ -10,18 +11,22 @@ type BalanceProps = {
  * Display (ETH & USD) balance of an ETH address.
  */
 export const Balance = ({ address, className = "" }: BalanceProps) => {
-  const configuredNetwork = getTargetNetworks()[0];
+  const noBalance = (
+    <div className="animate-pulse flex space-x-4">
+      <div className="rounded-md bg-slate-300 h-6 w-6"></div>
+      <div className="flex items-center space-y-6">
+        <div className="h-2 w-28 bg-slate-300 rounded"></div>
+      </div>
+    </div>
+  );
+
+  const { chain } = useNetwork();
+  const configuredNetwork = getTargetById(chain?.id as number);
+
   const { balance, price, isError, isLoading, onToggleBalance, isEthBalance } = useAccountBalance(address);
 
   if (!address || isLoading || balance === null) {
-    return (
-      <div className="animate-pulse flex space-x-4">
-        <div className="rounded-md bg-slate-300 h-6 w-6"></div>
-        <div className="flex items-center space-y-6">
-          <div className="h-2 w-28 bg-slate-300 rounded"></div>
-        </div>
-      </div>
-    );
+    return noBalance;
   }
 
   if (isError) {

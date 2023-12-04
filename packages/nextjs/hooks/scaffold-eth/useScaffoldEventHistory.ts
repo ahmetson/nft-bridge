@@ -6,7 +6,7 @@ import * as chains from "viem/chains";
 import { usePublicClient } from "wagmi";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import scaffoldConfig from "~~/scaffold.config";
-import { getTargetNetworks } from "~~/utils/scaffold-eth";
+import { getTargetById } from "~~/utils/scaffold-eth";
 import { replacer } from "~~/utils/scaffold-eth/common";
 import {
   ContractAbi,
@@ -27,6 +27,7 @@ import {
  * @param config.receiptData - if set to true it will return the receipt data for each event (default: false)
  * @param config.watch - if set to true, the events will be updated every pollingInterval milliseconds set at scaffoldConfig (default: false)
  * @param config.enabled - set this to false to disable the hook from running (default: true)
+ * @param config.chainId - a chain where contract is deployed
  */
 export const useScaffoldEventHistory = <
   TContractName extends ContractName,
@@ -44,15 +45,19 @@ export const useScaffoldEventHistory = <
   receiptData,
   watch,
   enabled = true,
+  chainId,
 }: UseScaffoldEventHistoryConfig<TContractName, TEventName, TBlockData, TTransactionData, TReceiptData>) => {
   const [events, setEvents] = useState<any[]>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [fromBlockUpdated, setFromBlockUpdated] = useState<bigint>(fromBlock);
 
-  const { data: deployedContractData, isLoading: deployedContractLoading } = useDeployedContractInfo(contractName);
+  const { data: deployedContractData, isLoading: deployedContractLoading } = useDeployedContractInfo(
+    contractName,
+    chainId,
+  );
   const publicClient = usePublicClient();
-  const configuredNetwork = getTargetNetworks()[0];
+  const configuredNetwork = getTargetById(chainId);
 
   const readEvents = async (fromBlock?: bigint) => {
     setIsLoading(true);

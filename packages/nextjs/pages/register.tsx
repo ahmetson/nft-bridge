@@ -6,7 +6,7 @@ import { ContractName } from "~~/utils/scaffold-eth/contract";
 import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
 
 const selectedContractStorageKey = "scaffoldEth2.selectedContract";
-const contractNames = getContractNames();
+const contractNames = getContractNames(11155111);
 
 const Register: NextPage = () => {
   const [selectedContract, setSelectedContract] = useLocalStorage<ContractName>(
@@ -15,7 +15,7 @@ const Register: NextPage = () => {
   );
 
   useEffect(() => {
-    if (!contractNames.includes(selectedContract)) {
+    if (!contractNames.includes(selectedContract as string)) {
       setSelectedContract(contractNames[0]);
     }
   }, [selectedContract, setSelectedContract]);

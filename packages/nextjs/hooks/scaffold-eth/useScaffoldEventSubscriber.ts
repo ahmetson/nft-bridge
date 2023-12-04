@@ -2,7 +2,6 @@ import { Abi, ExtractAbiEventNames } from "abitype";
 import { Log } from "viem";
 import { useContractEvent } from "wagmi";
 import { addIndexedArgsToEvent, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
-import { getTargetNetworks } from "~~/utils/scaffold-eth";
 import { ContractAbi, ContractName, UseScaffoldEventConfig } from "~~/utils/scaffold-eth/contract";
 
 /**
@@ -20,8 +19,9 @@ export const useScaffoldEventSubscriber = <
   contractName,
   eventName,
   listener,
+  chainId,
 }: UseScaffoldEventConfig<TContractName, TEventName>) => {
-  const { data: deployedContractData } = useDeployedContractInfo(contractName);
+  const { data: deployedContractData } = useDeployedContractInfo(contractName, chainId as number);
 
   const addInexedArgsToLogs = (logs: Log[]) => logs.map(addIndexedArgsToEvent);
   const listenerWithIndexedArgs = (logs: Log[]) =>
@@ -30,7 +30,7 @@ export const useScaffoldEventSubscriber = <
   return useContractEvent({
     address: deployedContractData?.address,
     abi: deployedContractData?.abi as Abi,
-    chainId: getTargetNetworks()[0].id,
+    chainId: chainId,
     listener: listenerWithIndexedArgs,
     eventName,
   });

@@ -241,6 +241,7 @@ export type UseScaffoldEventHistoryConfig<
   receiptData?: TReceiptData;
   watch?: boolean;
   enabled?: boolean;
+  chainId: number;
 };
 
 export type UseScaffoldEventHistoryData<

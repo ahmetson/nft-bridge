@@ -610,36 +610,29 @@ export default {
           ],
         },
         Registrar: {
-          address: "0xe40c7856B6D0e1B01dECBF9976BB706B9Cd1229f",
+          address: "0x50059999373F4FbD5b522A2AdC42aEc69EAbadDD",
           abi: [
             {
               inputs: [
                 {
-                  internalType: "uint256[]",
-                  name: "chainIds",
-                  type: "uint256[]",
+                  internalType: "uint64",
+                  name: "_networkSelector",
+                  type: "uint64",
                 },
                 {
-                  components: [
-                    {
-                      internalType: "uint64",
-                      name: "selector",
-                      type: "uint64",
-                    },
-                    {
-                      internalType: "address",
-                      name: "router",
-                      type: "address",
-                    },
-                    {
-                      internalType: "address",
-                      name: "registrar",
-                      type: "address",
-                    },
-                  ],
-                  internalType: "struct Registrar.NetworkParams[]",
-                  name: "networkParams",
-                  type: "tuple[]",
+                  internalType: "address",
+                  name: "_router",
+                  type: "address",
+                },
+                {
+                  internalType: "uint64[]",
+                  name: "destSelectors",
+                  type: "uint64[]",
+                },
+                {
+                  internalType: "address[]",
+                  name: "destRouters",
+                  type: "address[]",
                 },
               ],
               stateMutability: "nonpayable",
@@ -672,24 +665,18 @@ export default {
               inputs: [
                 {
                   indexed: false,
-                  internalType: "uint256",
-                  name: "chainId",
-                  type: "uint256",
-                },
-                {
-                  indexed: false,
                   internalType: "address",
-                  name: "source",
+                  name: "originalAddr",
                   type: "address",
                 },
                 {
                   indexed: false,
                   internalType: "address",
-                  name: "target",
+                  name: "nftAddress",
                   type: "address",
                 },
               ],
-              name: "NftAddress",
+              name: "Linked",
               type: "event",
             },
             {
@@ -710,6 +697,142 @@ export default {
               ],
               name: "OwnershipTransferred",
               type: "event",
+            },
+            {
+              anonymous: false,
+              inputs: [
+                {
+                  indexed: false,
+                  internalType: "uint64",
+                  name: "selector",
+                  type: "uint64",
+                },
+                {
+                  indexed: false,
+                  internalType: "address",
+                  name: "nftAddress",
+                  type: "address",
+                },
+                {
+                  indexed: false,
+                  internalType: "bytes32",
+                  name: "messageId",
+                  type: "bytes32",
+                },
+                {
+                  indexed: false,
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              name: "X_Setup",
+              type: "event",
+            },
+            {
+              anonymous: false,
+              inputs: [
+                {
+                  indexed: false,
+                  internalType: "uint64",
+                  name: "selector",
+                  type: "uint64",
+                },
+                {
+                  indexed: false,
+                  internalType: "address",
+                  name: "nftAddress",
+                  type: "address",
+                },
+                {
+                  indexed: false,
+                  internalType: "bytes32",
+                  name: "messageId",
+                  type: "bytes32",
+                },
+              ],
+              name: "X_SetupOne",
+              type: "event",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "nftAddr",
+                  type: "address",
+                },
+                {
+                  internalType: "uint64",
+                  name: "destSelector",
+                  type: "uint64",
+                },
+              ],
+              name: "calculateCreateLinkedNftFee",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "nftAddr",
+                  type: "address",
+                },
+              ],
+              name: "calculateLinting",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint64",
+                  name: "",
+                  type: "uint64",
+                },
+              ],
+              name: "destNetworks",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "router",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "factory",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "factory",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
             },
             {
               inputs: [
@@ -760,19 +883,27 @@ export default {
               type: "function",
             },
             {
-              inputs: [
+              inputs: [],
+              name: "networkSelector",
+              outputs: [
                 {
-                  internalType: "uint256",
+                  internalType: "uint64",
                   name: "",
-                  type: "uint256",
+                  type: "uint64",
                 },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
                 {
                   internalType: "address",
                   name: "",
                   type: "address",
                 },
               ],
-              name: "linkedNfts",
+              name: "nftAdmin",
               outputs: [
                 {
                   internalType: "address",
@@ -797,28 +928,42 @@ export default {
               type: "function",
             },
             {
-              inputs: [],
-              name: "renounceOwnership",
-              outputs: [],
-              stateMutability: "nonpayable",
-              type: "function",
-            },
-            {
               inputs: [
-                {
-                  internalType: "uint256",
-                  name: "chainId",
-                  type: "uint256",
-                },
                 {
                   internalType: "address",
                   name: "registrar",
                   type: "address",
                 },
+                {
+                  internalType: "string",
+                  name: "_name",
+                  type: "string",
+                },
+                {
+                  internalType: "string",
+                  name: "_symbol",
+                  type: "string",
+                },
+                {
+                  internalType: "address",
+                  name: "nftAddress",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "_router",
+                  type: "address",
+                },
               ],
-              name: "setRegistrar",
-              outputs: [],
-              stateMutability: "nonpayable",
+              name: "precomputeWrappedNft",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "pure",
               type: "function",
             },
             {
@@ -833,13 +978,46 @@ export default {
                   name: "deployTx",
                   type: "bytes32",
                 },
+              ],
+              name: "register",
+              outputs: [],
+              stateMutability: "payable",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "renounceOwnership",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "router",
+              outputs: [
                 {
-                  internalType: "uint256[]",
-                  name: "chainIds",
-                  type: "uint256[]",
+                  internalType: "address",
+                  name: "",
+                  type: "address",
                 },
               ],
-              name: "setup",
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint64",
+                  name: "_selector",
+                  type: "uint64",
+                },
+                {
+                  internalType: "address",
+                  name: "_factory",
+                  type: "address",
+                },
+              ],
+              name: "setFactory",
               outputs: [],
               stateMutability: "nonpayable",
               type: "function",
@@ -847,30 +1025,32 @@ export default {
             {
               inputs: [
                 {
-                  internalType: "uint256",
-                  name: "",
-                  type: "uint256",
+                  internalType: "address",
+                  name: "_factory",
+                  type: "address",
                 },
               ],
-              name: "supportedNetworks",
-              outputs: [
+              name: "setFactory",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "nftAddr",
+                  type: "address",
+                },
                 {
                   internalType: "uint64",
-                  name: "selector",
+                  name: "destSelector",
                   type: "uint64",
                 },
-                {
-                  internalType: "address",
-                  name: "router",
-                  type: "address",
-                },
-                {
-                  internalType: "address",
-                  name: "registrar",
-                  type: "address",
-                },
               ],
-              stateMutability: "view",
+              name: "setup",
+              outputs: [],
+              stateMutability: "payable",
               type: "function",
             },
             {
@@ -891,6 +1071,68 @@ export default {
               name: "withdraw",
               outputs: [],
               stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              name: "wrappers",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+          ],
+        },
+        SourceNftLib: {
+          address: "0x0B8F331A21B7A8E304016A58E37eF92516dd90E1",
+          abi: [
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "source",
+                  type: "address",
+                },
+              ],
+              name: "originalName",
+              outputs: [
+                {
+                  internalType: "string",
+                  name: "",
+                  type: "string",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "source",
+                  type: "address",
+                },
+              ],
+              name: "originalSymbol",
+              outputs: [
+                {
+                  internalType: "string",
+                  name: "",
+                  type: "string",
+                },
+              ],
+              stateMutability: "view",
               type: "function",
             },
           ],

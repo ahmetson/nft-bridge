@@ -245,30 +245,37 @@ The unwrapped NFT is in my account again.
 
 # Install
 
-1. Deploy registrar in sepolia: 
+1. Deploy the Library
+`yarn deploy --tags Libs --network sepolia --export-all ./scripts/deployments.ts`
+
+2. Verify
+
+`yarn verify-custom --network sepolia <lib_library>`
+
+2. Deploy registrar: 
 
 `yarn deploy --tags Registrar --network sepolia --export-all ./scripts/deployments.ts`
 
-2. Verify the registrar
+3. Verify the registrar
 
 `yarn verify-custom --network sepolia ${address} --constructor-args scripts/constructor/sepolia_registrar.ts`
 
-3. Deploy Linked Factory in sepolia
+4. Deploy Linked Factory
 
 `yarn deploy --tags Factory --network sepolia --export-all ./scripts/deployments.ts`
 
-4. Verify Linked Factory in sepolia
+5. Verify Linked Factory in sepolia
 
 `yarn verify-custom --network sepolia ${address} --constructor-args scripts/constructor/sepolia_linkedfactory.ts`
 
-5. Deploy Linked Factory in mumbai
+6. Deploy Linked Factory in mumbai
 
 `yarn deploy --tags Factory --network polygonMumbai --export-all ./scripts/deployments.ts`
 
-6. Verify Linked Factory in mumbai
+7. Verify Linked Factory in mumbai
 `yarn verify-custom --network polygonMumbai ${address} --constructor-args scripts/constructor/polygonmumbai_linkedfactory.ts`
 
-7. Let Registrar know the deployed Link Factory smartcontracts. :)
+8. Let Registrar know the deployed Link Factory smartcontracts. :)
 
 `yarn set-factory`
 

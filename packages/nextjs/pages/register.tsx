@@ -1,24 +1,142 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Abi } from "abitype";
 import type { NextPage } from "next";
-import { useLocalStorage } from "usehooks-ts";
+import { parseEther } from "viem";
+import { useAccount, useNetwork } from "wagmi";
+import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
 import { MetaHeader } from "~~/components/MetaHeader";
+import { Spinner } from "~~/components/assets/Spinner";
+import { TxnNotification, useAutoConnect, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { getTargetById, notification } from "~~/utils/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
-import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
 
-const selectedContractStorageKey = "scaffoldEth2.selectedContract";
-const contractNames = getContractNames(11155111);
+const managerNames = ["Registrar", "LinkedFactory"] as Array<ContractName>;
 
 const Register: NextPage = () => {
-  const [selectedContract, setSelectedContract] = useLocalStorage<ContractName>(
-    selectedContractStorageKey,
-    contractNames[0],
+  useAutoConnect();
+  const { chain } = useNetwork();
+  const { address, isConnecting, isDisconnected } = useAccount();
+
+  const configuredNetwork = getTargetById(chain?.id as number);
+  const { data: registrarData, isLoading: isRegistrarLoading } = useDeployedContractInfo(
+    managerNames[0],
+    chain?.id as number,
   );
+  const [originalNft, setOriginalNft] = useState("");
 
   useEffect(() => {
-    if (!contractNames.includes(selectedContract as string)) {
-      setSelectedContract(contractNames[0]);
+    console.log(`registrar`, registrarData);
+  }, [registrarData, isRegistrarLoading]);
+
+  if (isConnecting || isDisconnected) {
+    return (
+      <div className="mt-14">
+        <Spinner width="50px" height="50px" />
+      </div>
+    );
+  }
+  if (isRegistrarLoading) {
+    return (
+      <div className="mt-14">
+        <Spinner width="50px" height="50px" />
+      </div>
+    );
+  }
+
+  if (!registrarData) {
+    return (
+      <p className="text-3xl mt-14">
+        {`No contract found by the name of "${managerNames[0]}" on chain "${configuredNetwork.name}"!`}
+      </p>
+    );
+  }
+
+  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+    e.preventDefault();
+    let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
+
+    // first checking in the Registrar. If wrapper exists, we say you can set up.
+    const existingWrapper = await readContract({
+      address: registrarData?.address as string,
+      abi: registrarData?.abi as Abi,
+      functionName: "wrappers", // todo change to linkedAddrs
+      args: [originalNft],
+    });
+    notification.remove(notificationId);
+    if (existingWrapper !== "0x0000000000000000000000000000000000000000") {
+      notification.error(<TxnNotification message={`NFT wrapped. You can setup`} />);
+      return;
     }
-  }, [selectedContract, setSelectedContract]);
+
+    // Let's see that NFT is owned by the user.
+    let owner = "";
+    notificationId = notification.loading(<TxnNotification message="Validating NFT ownership" />);
+    try {
+      const res = await readContract({
+        address: originalNft,
+        abi: registrarData?.abi as Abi, // the registrar is ownable.
+        functionName: "owner",
+        args: [],
+      });
+      owner = res as string;
+    } catch (error: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={`Failed to fetch nft admin: ${error}`} />);
+      return;
+    }
+    notification.remove(notificationId);
+    if (owner?.toLowerCase() !== address?.toLowerCase()) {
+      notification.error(<TxnNotification message={`You are not the owner of the NFT`} />);
+      return;
+    }
+
+    notificationId = notification.loading(<TxnNotification message="Sign the transaction" />);
+
+    let hash: `0x${string}`;
+
+    try {
+      const { hash: signedHash } = await writeContract({
+        address: registrarData?.address as string,
+        abi: registrarData?.abi as Abi,
+        functionName: "register",
+        args: [originalNft, "0x0000000000000000000000000000000000000000000000000000000000000000"],
+        value: parseEther("0"), // paying if deployTx argument provided
+      });
+      hash = signedHash;
+    } catch (e: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={e.toString()} />);
+      return;
+    }
+
+    notification.remove(notificationId);
+    notificationId = notification.loading(
+      <TxnNotification
+        message={`Waiting for the confirmation: ${hash}`}
+        blockExplorerLink={configuredNetwork.blockExplorers?.default + hash}
+      />,
+    );
+
+    await waitForTransaction({
+      hash,
+    });
+    notification.remove(notificationId);
+
+    // get the wrapper address
+    const wrapperAddress = await readContract({
+      address: registrarData?.address as string,
+      abi: registrarData?.abi as Abi,
+      functionName: "wrappers", // todo change to linkedAddrs
+      args: [originalNft],
+    });
+
+    notification.success(
+      <TxnNotification
+        message={`Smartcontract registered, the Wrapper NFT address: ${wrapperAddress}`}
+        blockExplorerLink={`${configuredNetwork.blockExplorers?.default.url}/token/${wrapperAddress}`}
+      />,
+    );
+  }
 
   return (
     <>
@@ -33,7 +151,13 @@ const Register: NextPage = () => {
             <div className="label">
               <span className="label-text">ORIGINAL NFT?</span>
             </div>
-            <input type="text" placeholder="0x..." className="input input-bordered w-full max-w-xs" />
+            <input
+              type="text"
+              placeholder="0x..."
+              className="input input-bordered w-full max-w-xs"
+              value={originalNft}
+              onChange={e => setOriginalNft(e.target.value)}
+            />
             <div className="stats">
               <div className="stat">
                 <ul className="list-disc">
@@ -48,7 +172,9 @@ const Register: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary">Register</button>
+            <button className="btn btn-primary" onClick={e => onClick(e)}>
+              Register
+            </button>
             <div className="stats">
               <div className="stat">
                 <ul className="list-disc">

@@ -1,24 +1,133 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Abi } from "abitype";
 import type { NextPage } from "next";
-import { useLocalStorage } from "usehooks-ts";
+import { useAccount, useNetwork } from "wagmi";
+import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
 import { MetaHeader } from "~~/components/MetaHeader";
+import { Spinner } from "~~/components/assets/Spinner";
+import { TxnNotification, useAutoConnect, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import WrapperNft from "~~/utils/WrappedNft";
+import { getTargetById, notification } from "~~/utils/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
-import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
 
-const selectedContractStorageKey = "scaffoldEth2.selectedContract";
-const contractNames = getContractNames(11155111);
+const managerNames = ["Registrar", "LinkedFactory"] as Array<ContractName>;
 
 const Approve: NextPage = () => {
-  const [selectedContract, setSelectedContract] = useLocalStorage<ContractName>(
-    selectedContractStorageKey,
-    contractNames[0],
+  useAutoConnect();
+  const { chain } = useNetwork();
+  const { address, isConnecting, isDisconnected } = useAccount();
+
+  const configuredNetwork = getTargetById(chain?.id as number);
+  const { data: registrarData, isLoading: isRegistrarLoading } = useDeployedContractInfo(
+    managerNames[0],
+    chain?.id as number,
   );
+  const [originalNft, setOriginalNft] = useState("");
 
   useEffect(() => {
-    if (!contractNames.includes(selectedContract as string)) {
-      setSelectedContract(contractNames[0]);
+    console.log(`registrar`, registrarData);
+  }, [registrarData, isRegistrarLoading]);
+
+  if (isConnecting || isDisconnected) {
+    return (
+      <div className="mt-14">
+        <Spinner width="50px" height="50px" />
+      </div>
+    );
+  }
+  if (isRegistrarLoading) {
+    return (
+      <div className="mt-14">
+        <Spinner width="50px" height="50px" />
+      </div>
+    );
+  }
+
+  if (!registrarData) {
+    return (
+      <p className="text-3xl mt-14">
+        {`No contract found by the name of "${managerNames[0]}" on chain "${configuredNetwork.name}"!`}
+      </p>
+    );
+  }
+
+  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+    e.preventDefault();
+    let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
+
+    // first checking in the Registrar. If wrapper exists, we say you can set up.
+    const wrapperAddress = await readContract({
+      address: registrarData?.address as string,
+      abi: registrarData?.abi as Abi,
+      functionName: "wrappers", // todo change to linkedAddrs
+      args: [originalNft],
+    });
+    notification.remove(notificationId);
+    if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
+      notification.error(<TxnNotification message={`NFT is not bridged, contact to the NFT creator`} />);
+      return;
     }
-  }, [selectedContract, setSelectedContract]);
+
+    // Let's see that NFT is owned by the user.
+    let approvedForAll = false;
+    notificationId = notification.loading(<TxnNotification message="Validating NFT approval" />);
+    try {
+      const res = await readContract({
+        address: originalNft,
+        abi: WrapperNft as Abi,
+        functionName: "isApprovedForAll",
+        args: [address, wrapperAddress],
+      });
+      approvedForAll = res as boolean;
+    } catch (error: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={`Failed to fetch nft approval: ${error}`} />);
+      return;
+    }
+    notification.remove(notificationId);
+    if (approvedForAll) {
+      notification.success(<TxnNotification message={`NFT already approved`} />);
+      return;
+    }
+
+    notificationId = notification.loading(<TxnNotification message="Approve the Wrapper to use NFT" />);
+
+    let hash: `0x${string}`;
+
+    try {
+      const { hash: signedHash } = await writeContract({
+        address: originalNft,
+        abi: WrapperNft as Abi,
+        functionName: "setApprovalForAll",
+        args: [wrapperAddress, true],
+      });
+      hash = signedHash;
+    } catch (e: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={e.toString()} />);
+      return;
+    }
+
+    notification.remove(notificationId);
+    notificationId = notification.loading(
+      <TxnNotification
+        message={`Waiting for the confirmation: ${hash}`}
+        blockExplorerLink={configuredNetwork.blockExplorers?.default.url + "/tx/" + hash}
+      />,
+    );
+
+    await waitForTransaction({
+      hash,
+    });
+    notification.remove(notificationId);
+
+    notification.success(
+      <TxnNotification
+        message={`Wrapper NFT address approved, you can bridge now`}
+        blockExplorerLink={`${configuredNetwork.blockExplorers?.default.url}/token/${wrapperAddress}`}
+      />,
+    );
+  }
 
   return (
     <>
@@ -30,7 +139,13 @@ const Approve: NextPage = () => {
             <div className="label">
               <span className="label-text">NFT ADDRESS?</span>
             </div>
-            <input type="text" placeholder="0x..." className="input input-bordered w-full max-w-xs" />
+            <input
+              type="text"
+              placeholder="0x..."
+              className="input input-bordered w-full max-w-xs"
+              value={originalNft}
+              onChange={e => setOriginalNft(e.target.value)}
+            />
             <div className="stats">
               <div className="stat">
                 <ul className="list-disc">
@@ -41,7 +156,9 @@ const Approve: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary">Approve</button>
+            <button className="btn btn-primary" onClick={e => onClick(e)}>
+              Approve
+            </button>
             <div className="stats">
               <div className="stat">
                 <ul className="list-disc">

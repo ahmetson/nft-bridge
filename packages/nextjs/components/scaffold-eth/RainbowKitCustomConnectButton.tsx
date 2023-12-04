@@ -50,7 +50,7 @@ export const RainbowKitCustomConnectButton = () => {
                 chain.unsupported ||
                 configuredNetworks.findLastIndex(configuredNetwork => {
                   return configuredNetwork.id !== chain.id;
-                })
+                }) === -1
               ) {
                 return (
                   <div className="dropdown dropdown-end">

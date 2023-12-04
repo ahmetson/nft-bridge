@@ -15,7 +15,7 @@ type TransactionFunc = (
 /**
  * Custom notification content for TXs.
  */
-const TxnNotification = ({ message, blockExplorerLink }: { message: string; blockExplorerLink?: string }) => {
+export const TxnNotification = ({ message, blockExplorerLink }: { message: string; blockExplorerLink?: string }) => {
   return (
     <div className={`flex flex-col ml-1 cursor-default`}>
       <p className="my-0">{message}</p>

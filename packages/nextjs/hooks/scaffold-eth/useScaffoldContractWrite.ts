@@ -35,6 +35,8 @@ export const useScaffoldContractWrite = <
   const [isMining, setIsMining] = useState(false);
   const configuredNetwork = getTargetById(writeConfig.chainId as number);
 
+  console.log(writeConfig.chainId);
+
   const wagmiContractWrite = useContractWrite({
     address: deployedContractData?.address,
     abi: deployedContractData?.abi as Abi,
@@ -52,6 +54,7 @@ export const useScaffoldContractWrite = <
     args?: UseScaffoldWriteConfig<TContractName, TFunctionName>["args"];
     value?: UseScaffoldWriteConfig<TContractName, TFunctionName>["value"];
   } & UpdatedArgs = {}) => {
+    console.log(`Clicked to send`);
     if (!deployedContractData) {
       notification.error("Target Contract is not deployed, did you forget to run `yarn deploy`?");
       return;

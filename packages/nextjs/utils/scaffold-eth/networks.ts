@@ -7,6 +7,8 @@ type ChainAttributes = {
   // Used to fetch price by providing mainnet token address
   // for networks having native currency other than ETH
   nativeCurrencyTokenAddress?: string;
+  selector?: string;
+  router?: string;
 };
 
 const NETWORKS_EXTRA_DATA: Record<string, ChainAttributes> = {
@@ -18,9 +20,13 @@ const NETWORKS_EXTRA_DATA: Record<string, ChainAttributes> = {
   },
   [chains.sepolia.id]: {
     color: ["#5f4bb6", "#87ff65"],
+    selector: "0xDE41BA4FC9D91AD9",
+    router: "0xd0daae2231e9cb96b94c8512223533293c3693bf",
   },
-  [chains.goerli.id]: {
+  [chains.bscTestnet.id]: {
     color: "#0975F6",
+    selector: "0xB8159170038F96FB",
+    router: "0x9527e2d01a3064ef6b50c1da1c0cc523803bcff2",
   },
   [chains.gnosis.id]: {
     color: "#48a9a6",
@@ -32,6 +38,8 @@ const NETWORKS_EXTRA_DATA: Record<string, ChainAttributes> = {
   [chains.polygonMumbai.id]: {
     color: "#92D9FA",
     nativeCurrencyTokenAddress: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
+    selector: "0xADECC60412CE25A5",
+    router: "0x70499c328e1e2a3c41108bd3730f6670a44595d1",
   },
   [chains.optimismGoerli.id]: {
     color: "#f01a37",
@@ -39,8 +47,10 @@ const NETWORKS_EXTRA_DATA: Record<string, ChainAttributes> = {
   [chains.optimism.id]: {
     color: "#f01a37",
   },
-  [chains.arbitrumGoerli.id]: {
+  [chains.avalancheFuji.id]: {
     color: "#28a0f0",
+    selector: "0xCCF0A31A221F3C9B",
+    router: "0x554472a2720e5e7d5d3c817529aba05eed5f82d8",
   },
   [chains.arbitrum.id]: {
     color: "#28a0f0",
@@ -111,12 +121,19 @@ export function getTargetById(id: number): chains.Chain & Partial<ChainAttribute
 /**
  * @returns targetNetworks object consisting targetNetworks from scaffold.config and extra network metadata
  */
-export function getTargetNetworks(): Array<chains.Chain & Partial<ChainAttributes>> {
-  const targets = scaffoldConfig.targetNetworks.map(configuredNetwork => {
+export function getTargetNetworks(chainId?: number): Array<chains.Chain & Partial<ChainAttributes>> {
+  let remove = -1;
+  const targets = scaffoldConfig.targetNetworks.map((configuredNetwork, i) => {
+    if (chainId && configuredNetwork.id === chainId) {
+      remove = i;
+    }
     return {
       ...configuredNetwork,
       ...NETWORKS_EXTRA_DATA[configuredNetwork.id],
     };
   });
+  if (remove > -1) {
+    targets.splice(remove, 1);
+  }
   return targets;
 }

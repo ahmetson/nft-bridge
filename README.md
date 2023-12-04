@@ -283,3 +283,7 @@ In the hardhat package
 `npx hardhat --network polygonMumbai 0xCb3B96E8c57E90b8B74959c8475cD3245D02f053 --constructor-args scripts/constructor/polygonmumbai_linkedfactory.ts`
 
 
+8. Export deployments to the frontend
+
+Duplicate `packages/hardhat/scripts/deployments.ts`
+to `packages/nextjs/utils/deployment.ts`.

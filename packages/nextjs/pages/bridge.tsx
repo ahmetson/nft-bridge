@@ -208,9 +208,9 @@ const Bridge: NextPage = () => {
               <div className="stat">
                 <ul className="list-disc">
                   <li className="label-text-alt text-left">
-                    You are in <span>sepolia</span>
+                    You are in <span>{configuredNetwork.name}</span>
                     <br />
-                    NFTs must be in <span>sepolia</span> or change the network in your wallet.
+                    NFTs must be in <span>{configuredNetwork.name}</span> or change the network in your wallet.
                   </li>
                   <li className="label-text-alt text-left">
                     NFT must be <Link href={"/approve"}>approved</Link>

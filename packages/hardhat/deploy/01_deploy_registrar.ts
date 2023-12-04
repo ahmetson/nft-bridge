@@ -16,7 +16,7 @@ const registrarContract: DeployFunction = async function (hre: HardhatRuntimeEnv
 
   const chainId = await hre.getChainId();
 
-  const deployments = Deployments[chainId][0];
+  const deployments = Deployments[chainId as keyof typeof Deployments][0];
   const sourceLib: string = deployments.contracts["SourceNftLib"].address;
 
   const networkParams = one(chainId);

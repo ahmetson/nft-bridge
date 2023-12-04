@@ -17,7 +17,7 @@ export const supportedNetworkParams: { [key: string]: NetworkParams } = {
     selector: "0xADECC60412CE25A5",
     router: "0x70499c328e1e2a3c41108bd3730f6670a44595d1",
   },
-  "1311": {
+  "43113": {
     selector: "0xCCF0A31A221F3C9B",
     router: "0x554472a2720e5e7d5d3c817529aba05eed5f82d8",
   },
@@ -27,10 +27,17 @@ export const supportedNetworkParams: { [key: string]: NetworkParams } = {
   },
 };
 
-export function one(chainId: string): NetworkParams {
+export function one(chainId: string | number): NetworkParams {
+  if (typeof chainId === "number") {
+    return one(chainId.toString());
+  }
   return supportedNetworkParams[chainId];
 }
-export function listSelectors(exceptChainId: string): Array<string> {
+
+export function listSelectors(exceptChainId: string | number): Array<string> {
+  if (typeof exceptChainId === "number") {
+    return listSelectors(exceptChainId.toString());
+  }
   const selectors = new Array<string>();
   for (const chainId in supportedNetworkParams) {
     if (chainId === exceptChainId) {
@@ -41,7 +48,10 @@ export function listSelectors(exceptChainId: string): Array<string> {
   return selectors;
 }
 
-export function listRouters(exceptChainId: string): Array<string> {
+export function listRouters(exceptChainId: string | number): Array<string> {
+  if (typeof exceptChainId === "number") {
+    return listRouters(exceptChainId.toString());
+  }
   const routers = new Array<string>();
   for (const chainId in supportedNetworkParams) {
     if (chainId === exceptChainId) {
@@ -52,16 +62,21 @@ export function listRouters(exceptChainId: string): Array<string> {
   return routers;
 }
 
-export function contractAddress(chainId: string, name: string): string {
-  if (Deployments[chainId] === undefined) {
+export function contractAddress(chainId: string | number, name: string): string {
+  if (typeof chainId === "number") {
+    return contractAddress(chainId.toString(), name);
+  }
+
+  if (Deployments[chainId as keyof typeof Deployments] === undefined) {
     return "";
   }
-  const deployments = Deployments[chainId][0];
-  if (deployments.contracts[name] === undefined) {
+  const deployments = Deployments[chainId as keyof typeof Deployments][0];
+  const contractName = name as keyof typeof deployments.contracts;
+  if (deployments.contracts[contractName] === undefined) {
     return "";
   }
 
-  return deployments.contracts[name].address;
+  return deployments.contracts[contractName].address;
 }
 
 export function chainIds(exceptChainId: string): Array<string> {

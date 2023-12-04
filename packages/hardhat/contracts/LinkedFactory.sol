@@ -26,6 +26,8 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 	// selector => Network Param
 	mapping(uint64 => Network) public destNetworks;
 
+	mapping(address => address) public linkedAddrs; // no need to pre-compute everytime
+
 	uint64 private tempChainId;
 
 	event X_Setup(uint64 selector, address nftAddress, bytes32 messageId);
@@ -97,6 +99,7 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 			// so let's keep the order in all blockchains.
 			linkedNft.setup(selectors, linkedNftAddrs);
 			linkedNft.setupOne(networkSelector, address(linkedNft));
+			linkedAddrs[nftAddr] = address(linkedNft);
 
 			emit Linked(nftAddr, address(linkedNft));
 		} catch Error(string memory reason) {

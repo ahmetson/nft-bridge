@@ -38,7 +38,7 @@ contract Registrar is Ownable {
 	mapping(uint64 => Network) public destNetworks;
 	// original nft => owner|creator
 	mapping(address => address) public nftAdmin;
-	mapping(address => address) public wrappers; // no need to pre-compute everytime
+	mapping(address => address) public linkedAddrs; // no need to pre-compute everytime
 
 	uint64 private tempChainId;
 
@@ -105,7 +105,7 @@ contract Registrar is Ownable {
 		created.setupOne(networkSelector);
 
 		nftAdmin[nftAddr] = msg.sender;
-		wrappers[nftAddr] = address(created);
+		linkedAddrs[nftAddr] = address(created);
 	}
 
 	/** Setup a linked NFT for `nftAddr` on another blockchain defined by `destSelector`.
@@ -122,7 +122,7 @@ contract Registrar is Ownable {
 		require(factory != address(0), "no factory");
 
 		// add to the wrappedNft the selectors.
-		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
+		WrappedNft wrappedNft = WrappedNft(linkedAddrs[nftAddr]);
 		require(wrappedNft.linkedNfts(destSelector) == address(0), "already linked");
 
 		uint256 remaining = createLinkedNft(nftAddr, destSelector);
@@ -144,7 +144,7 @@ contract Registrar is Ownable {
 	/// @param nftAddr the original NFT address
 	/// @return the native token that user can retrieve back
 	function createLinkedNft(address nftAddr, uint64 destSelector) internal returns (uint256) {
-		WrappedNft wrappedNft = WrappedNft(wrappers[nftAddr]);
+		WrappedNft wrappedNft = WrappedNft(linkedAddrs[nftAddr]);
 		// The created nft will be linked to all previous nfts that we have.
 		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
 

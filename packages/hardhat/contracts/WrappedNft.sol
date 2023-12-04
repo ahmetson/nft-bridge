@@ -9,23 +9,12 @@ import { IRouterClient } from "./chainlink/ccip/interfaces/IRouterClient.sol";
 import { Client } from "./chainlink/ccip/libraries/Client.sol";
 import { CCIPReceiver } from "./chainlink/ccip/applications/CCIPReceiver.sol";
 
-/**
- * @notice WrappedNft is an NFT on the Source Blockchain, which locks the original NFT, and disables transferring it.
- * When an NFT is wrapped, the Listening oracles would mint the copy on target Blockchain.
- *
- * todo Unwrapping Wrapped NFTs is not possible in this version.
- */
 contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     ERC721 public originalNft;
 
     address public registrar;
     address public router;
 
-    // track routers and selectors of dest blockchains.
-
-    // The linked nft addresses across blockchains.
-    // For this blockchain it creates a wrapped NFT.
-    //
     // chain id => linked nft|wrapped nft.
     uint64[] public nftSupportedChains;
     mapping(uint64 => address) public linkedNfts;

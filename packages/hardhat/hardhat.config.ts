@@ -36,40 +36,12 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    // View the networks that are pre-configured.
-    // If the network you are looking for is not here you can add new network settings
-    hardhat: {
-      forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
-        enabled: process.env.MAINNET_FORKING_ENABLED === "true",
-      },
-    },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
     sepolia: {
       url: `https://ethereum-sepolia.publicnode.com`,
-      accounts: [deployerPrivateKey],
-    },
-    goerli: {
-      url: `https://eth-goerli.alchemyapi.io/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    arbitrum: {
-      url: `https://arb-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    arbitrumGoerli: {
-      url: `https://arb-goerli.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    optimism: {
-      url: `https://opt-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    optimismGoerli: {
-      url: `https://opt-goerli.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
     polygon: {
@@ -88,48 +60,12 @@ const config: HardhatUserConfig = {
       url: `https://polygonzkevm-testnet.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
-    zkSyncTestnet: {
-      url: "https://testnet.era.zksync.dev",
-      zksync: true,
-      accounts: [deployerPrivateKey],
-      verifyURL: "https://zksync2-testnet-explorer.zksync.dev/contract_verification",
-    },
-    zkSync: {
-      url: "https://mainnet.era.zksync.io",
-      zksync: true,
-      accounts: [deployerPrivateKey],
-      verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
-    },
-    gnosis: {
-      url: "https://rpc.gnosischain.com",
+    fuji: {
+      url: `https://avalanche-fuji-c-chain.publicnode.com`,
       accounts: [deployerPrivateKey],
     },
-    chiado: {
-      url: "https://rpc.chiadochain.net",
-      accounts: [deployerPrivateKey],
-    },
-    base: {
-      url: "https://mainnet.base.org",
-      accounts: [deployerPrivateKey],
-    },
-    baseGoerli: {
-      url: "https://goerli.base.org",
-      accounts: [deployerPrivateKey],
-    },
-    scrollSepolia: {
-      url: "https://sepolia-rpc.scroll.io",
-      accounts: [deployerPrivateKey],
-    },
-    scroll: {
-      url: "https://rpc.scroll.io",
-      accounts: [deployerPrivateKey],
-    },
-    pgn: {
-      url: "https://rpc.publicgoods.network",
-      accounts: [deployerPrivateKey],
-    },
-    pgnTestnet: {
-      url: "https://sepolia.publicgoods.network",
+    bscTestnet: {
+      url: `https://bsc-testnet.publicnode.com`,
       accounts: [deployerPrivateKey],
     },
   },
@@ -142,7 +78,19 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: etherscanApiKey,
       polygonMumbai: process.env.POLYGONSCAN_API_KEY as string,
+      fuji: "fuji",
+      bscTestnet: process.env.BSCSCAN_API_KEY as string,
     },
+    customChains: [
+      {
+        network: "fuji",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://avalanche.testnet.routescan.io",
+        },
+      },
+    ],
   },
 };
 

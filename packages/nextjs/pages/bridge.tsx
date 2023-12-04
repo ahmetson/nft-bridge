@@ -32,7 +32,7 @@ const Bridge: NextPage = () => {
   );
   const [originalNft, setOriginalNft] = useState("");
   const [nftId, setNftId] = useState(0);
-  const [selectedNetwork, setSelectedNetwork] = useState(``); // Declare a state variable...
+  const [selectedNetwork, setSelectedNetwork] = useState(destNetworks[0].selector as string); // Declare a state variable...
 
   const { data: linkedFactoryData, isLoading: isLinkedFactoryLoading } = useDeployedContractInfo(
     managerNames[1],

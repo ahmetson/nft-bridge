@@ -10,7 +10,7 @@ export type ScaffoldConfig = {
 
 const scaffoldConfig = {
   // The network where your DApp lives in
-  targetNetworks: [chains.sepolia, chains.polygonMumbai, chains.avalancheFuji, chains.bearNetworkChainTestnet],
+  targetNetworks: [chains.sepolia, chains.polygonMumbai, chains.avalancheFuji, chains.bscTestnet],
 
   // The interval at which your front-end polls the RPC servers for new data
   // it has no effect on the local network

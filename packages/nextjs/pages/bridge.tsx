@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Abi } from "abitype";
 import type { NextPage } from "next";
-import { parseEther } from "viem";
+import { formatEther } from "viem";
 import { useNetwork } from "wagmi";
 import { useAccount } from "wagmi";
 import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
@@ -10,7 +10,6 @@ import { MetaHeader } from "~~/components/MetaHeader";
 import { Spinner } from "~~/components/assets/Spinner";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { TxnNotification } from "~~/hooks/scaffold-eth";
-import { useAutoConnect } from "~~/hooks/scaffold-eth";
 import WrapperNft from "~~/utils/WrappedNft";
 import { getTargetById, getTargetNetworks } from "~~/utils/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
@@ -20,7 +19,6 @@ import { ContractName } from "~~/utils/scaffold-eth/contract";
 const managerNames = ["Registrar", "LinkedFactory"] as Array<ContractName>;
 
 const Bridge: NextPage = () => {
-  useAutoConnect();
   const { chain } = useNetwork();
   const { address, isConnecting, isDisconnected } = useAccount();
 
@@ -38,10 +36,6 @@ const Bridge: NextPage = () => {
     managerNames[1],
     chain?.id as number,
   );
-
-  useEffect(() => {
-    console.log(`registrar`, registrarData, `linked factory`, linkedFactoryData);
-  }, [registrarData, isRegistrarLoading, linkedFactoryData, isLinkedFactoryLoading]);
 
   if (isConnecting || isDisconnected) {
     return (
@@ -73,33 +67,55 @@ const Bridge: NextPage = () => {
       </p>
     );
   }
-  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    e.preventDefault();
-    let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
+  async function onClick() {
+    let origSource = true; // true, if bridging from the original
 
-    // first checking in the Registrar
-    // then in the LinkedFactory.
-    const wrapperAddress = await readContract({
-      address: registrarData?.address as string,
-      abi: registrarData?.abi as Abi,
-      functionName: "wrappers", // todo change to linkedAddrs
-      args: [originalNft],
-    });
-    console.log(`The registered wrapper is: ${wrapperAddress}`);
-    if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
-      console.warn(`Search for wrapper in Factory`);
-      notification.remove(notificationId);
-      notification.error(<TxnNotification message={`NFT not wrapped. Contact to the owner to ask them to wrap it`} />);
+    if (selectedNetwork.length === 0) {
+      notification.error(<TxnNotification message={`Select the destination`} />);
       return;
     }
+
+    let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
+
+    let wrapperAddress = await readContract({
+      address: registrarData?.address as string,
+      abi: registrarData?.abi as Abi,
+      functionName: "linkedAddrs", // todo change to linkedAddrs
+      args: [originalNft],
+    });
+
     notification.remove(notificationId);
+    if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
+      wrapperAddress = (await readContract({
+        address: linkedFactoryData?.address as string,
+        abi: linkedFactoryData?.abi as Abi,
+        functionName: "linkedAddrs", // todo change to linkedAddrs
+        args: [originalNft],
+      })) as string;
+
+      if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
+        notificationId = notification.error(
+          <TxnNotification message="Contract not bridged. Contact to the NFT owner" />,
+        );
+        return;
+      }
+      origSource = false;
+    }
+
+    // Identify is it the original chain or not.
+    // const originalChainSelector = (await readContract({
+    //   address: wrapperAddress as string,
+    //   abi: WrapperNft as Abi,
+    //   functionName: "nftSupportedChains", // todo change to linkedAddrs
+    //   args: [0],
+    // })) as bigint;
 
     // Let's see that NFT is owned by the user.
     let owner = "";
     notificationId = notification.loading(<TxnNotification message="Validating NFT ownership" />);
     try {
       const res = await readContract({
-        address: originalNft,
+        address: origSource ? (originalNft as string) : (wrapperAddress as string),
         abi: WrapperNft as Abi,
         functionName: "ownerOf",
         args: [nftId],
@@ -116,36 +132,60 @@ const Bridge: NextPage = () => {
       return;
     }
 
-    // Let's check that user approved
-    let approvedForAll = false;
-    notificationId = notification.loading(<TxnNotification message="Validating NFT approval" />);
-    try {
-      const res = await readContract({
-        address: originalNft,
-        abi: WrapperNft as Abi,
-        functionName: "isApprovedForAll",
-        args: [address, wrapperAddress],
-      });
-      approvedForAll = res as boolean;
-    } catch (error: any) {
+    // Let's check that user approved if it's the original chain
+    if (origSource) {
+      let approvedForAll = false;
+      notificationId = notification.loading(<TxnNotification message="Validating NFT approval" />);
+      try {
+        const res = await readContract({
+          address: originalNft,
+          abi: WrapperNft as Abi,
+          functionName: "isApprovedForAll",
+          args: [address, wrapperAddress],
+        });
+        approvedForAll = res as boolean;
+      } catch (error: any) {
+        notification.remove(notificationId);
+        notification.error(<TxnNotification message={`Failed to fetch nft approval: ${error}`} />);
+        return;
+      }
       notification.remove(notificationId);
-      notification.error(<TxnNotification message={`Failed to fetch nft approval: ${error}`} />);
-      return;
+      if (!approvedForAll) {
+        notification.error(<TxnNotification message={`You didn't approve your nft to bridge.`} />);
+        return;
+      }
     }
-    notification.remove(notificationId);
-    if (!approvedForAll) {
-      notification.error(<TxnNotification message={`You didn't approve your nft to bridge.`} />);
+
+    // Calculating the fee.
+    let bridgeFee: bigint;
+    notificationId = notification.loading(<TxnNotification message="Calculating the fee" />);
+
+    try {
+      bridgeFee = (await readContract({
+        address: wrapperAddress as string,
+        abi: WrapperNft as Abi,
+        functionName: "calculateBridgeFee",
+        args: [nftId, selectedNetwork],
+      })) as bigint;
+    } catch (e: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={e.toString()} />);
       return;
     }
 
-    if (selectedNetwork.length === 0) {
-      notification.error(<TxnNotification message={`Select the destination`} />);
-      return;
-    }
+    notification.remove(notificationId);
+    notification.info(
+      <TxnNotification
+        message={`Bridging costs ${formatEther(bridgeFee)} ${configuredNetwork.nativeCurrency.symbol}`}
+      />,
+    );
 
     notificationId = notification.loading(<TxnNotification message="Sign the transaction" />);
 
     let hash: `0x${string}`;
+
+    // bridge to the wrapper uses different args
+    notification.warning(<TxnNotification message="Redeploy the smartcontracts to calculate the fee" />);
 
     try {
       const { hash: signedHash } = await writeContract({
@@ -153,7 +193,7 @@ const Bridge: NextPage = () => {
         abi: WrapperNft as Abi,
         functionName: "bridge",
         args: [nftId, selectedNetwork],
-        value: parseEther("0.01"),
+        value: bridgeFee,
       });
       hash = signedHash;
     } catch (e: any) {
@@ -262,7 +302,7 @@ const Bridge: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary" onClick={e => onClick(e)}>
+            <button className="btn btn-primary" onClick={() => onClick()}>
               Bridge
             </button>
             <div className="stats">

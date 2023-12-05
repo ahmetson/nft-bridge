@@ -6,14 +6,13 @@ import { useAccount, useNetwork } from "wagmi";
 import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { Spinner } from "~~/components/assets/Spinner";
-import { TxnNotification, useAutoConnect, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { TxnNotification, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { getTargetById, notification } from "~~/utils/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
 
 const managerNames = ["Registrar", "LinkedFactory"] as Array<ContractName>;
 
 const Register: NextPage = () => {
-  useAutoConnect();
   const { chain } = useNetwork();
   const { address, isConnecting, isDisconnected } = useAccount();
 
@@ -51,15 +50,14 @@ const Register: NextPage = () => {
     );
   }
 
-  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    e.preventDefault();
+  async function onClick() {
     let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
 
     // first checking in the Registrar. If wrapper exists, we say you can set up.
     const existingWrapper = await readContract({
       address: registrarData?.address as string,
       abi: registrarData?.abi as Abi,
-      functionName: "wrappers", // todo change to linkedAddrs
+      functionName: "linkedAddrs",
       args: [originalNft],
     });
     notification.remove(notificationId);
@@ -126,7 +124,7 @@ const Register: NextPage = () => {
     const wrapperAddress = await readContract({
       address: registrarData?.address as string,
       abi: registrarData?.abi as Abi,
-      functionName: "wrappers", // todo change to linkedAddrs
+      functionName: "linkedAddrs",
       args: [originalNft],
     });
 
@@ -172,7 +170,7 @@ const Register: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary" onClick={e => onClick(e)}>
+            <button className="btn btn-primary" onClick={() => onClick()}>
               Register
             </button>
             <div className="stats">

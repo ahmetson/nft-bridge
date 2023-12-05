@@ -132,6 +132,41 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
         return budget;
     }
 
+    function calculateLinting() external view returns(uint256) {
+        if (nftSupportedChains.length <= 1) {
+            return 0;
+        }
+        // the first selector is this contract.
+        // the last one added and linted automatically to previous ones.
+        uint64 lastSelector = nftSupportedChains[nftSupportedChains.length-1];
+        address lastNftAddr = linkedNfts[lastSelector];
+
+        uint256 totalFee = 0;
+
+        for (uint256 i = 1; i < nftSupportedChains.length; i++) {
+            uint64 destSelector = nftSupportedChains[i];
+
+            // Linked NFT will accept this method to add nft on a new blockchain.
+            bytes memory data = abi.encodeWithSignature("setupOne(uint64,address)", lastSelector, lastNftAddr);
+
+            Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+                receiver: abi.encode(linkedNfts[destSelector]),
+                data: data,
+                tokenAmounts: new Client.EVMTokenAmount[](0),
+                extraArgs: "",
+                feeToken: address(0)
+            });
+
+            totalFee += IRouterClient(router).getFee(
+                destSelector,
+                message
+            );
+        }
+
+        return totalFee;
+    }
+
+
     function allNfts() external view returns(uint64[] memory, address[] memory) {
         address[] memory linkedNftAddrs = new address[](nftSupportedChains.length);
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
@@ -186,6 +221,28 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
 
         emit X_Bridge(chainSelector, nftId, msg.sender, messageId);
     }
+
+    function calculateBridgeFee(uint256 nftId, uint64 chainSelector) external view returns(uint256) {
+        string memory uri = originalNft.tokenURI(nftId);
+
+        // pre-compute the linked address
+        address linkedAddr = linkedNfts[chainSelector];
+
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(linkedAddr),
+            data: abi.encodeWithSignature("bridge(uint256,address,string)", nftId, msg.sender, uri),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: address(0)
+        });
+
+        uint256 fee = IRouterClient(router).getFee(
+            chainSelector,
+            message
+        );
+        return fee;
+    }
+
 
     function _ccipReceive(
         Client.Any2EVMMessage memory message

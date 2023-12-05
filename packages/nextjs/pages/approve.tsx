@@ -5,7 +5,7 @@ import { useAccount, useNetwork } from "wagmi";
 import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { Spinner } from "~~/components/assets/Spinner";
-import { TxnNotification, useAutoConnect, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { TxnNotification, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import WrapperNft from "~~/utils/WrappedNft";
 import { getTargetById, notification } from "~~/utils/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
@@ -13,7 +13,6 @@ import { ContractName } from "~~/utils/scaffold-eth/contract";
 const managerNames = ["Registrar", "LinkedFactory"] as Array<ContractName>;
 
 const Approve: NextPage = () => {
-  useAutoConnect();
   const { chain } = useNetwork();
   const { address, isConnecting, isDisconnected } = useAccount();
 
@@ -51,20 +50,21 @@ const Approve: NextPage = () => {
     );
   }
 
-  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    e.preventDefault();
+  async function onClick() {
     let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
 
     // first checking in the Registrar. If wrapper exists, we say you can set up.
     const wrapperAddress = await readContract({
       address: registrarData?.address as string,
       abi: registrarData?.abi as Abi,
-      functionName: "wrappers", // todo change to linkedAddrs
+      functionName: "linkedAddrs",
       args: [originalNft],
     });
     notification.remove(notificationId);
     if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
-      notification.error(<TxnNotification message={`NFT is not bridged, contact to the NFT creator`} />);
+      notification.error(
+        <TxnNotification message={`NFT is not bridged or it's a wrong network, contact to the NFT creator`} />,
+      );
       return;
     }
 
@@ -156,7 +156,7 @@ const Approve: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary" onClick={e => onClick(e)}>
+            <button className="btn btn-primary" onClick={() => onClick()}>
               Approve
             </button>
             <div className="stats">

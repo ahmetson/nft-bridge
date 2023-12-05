@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Abi } from "abitype";
 import type { NextPage } from "next";
-import { parseEther } from "viem";
+import { formatEther } from "viem";
 import { useAccount, useNetwork } from "wagmi";
 import { readContract, waitForTransaction, writeContract } from "wagmi/actions";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { Spinner } from "~~/components/assets/Spinner";
-import { TxnNotification, useAutoConnect, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { TxnNotification, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import WrapperNft from "~~/utils/WrappedNft";
 import { getTargetById, getTargetNetworks, notification } from "~~/utils/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
@@ -15,7 +15,6 @@ import { ContractName } from "~~/utils/scaffold-eth/contract";
 const registrarName = "Registrar" as ContractName;
 
 const Setup: NextPage = () => {
-  useAutoConnect();
   const { chain } = useNetwork();
   const { address, isConnecting, isDisconnected } = useAccount();
 
@@ -27,10 +26,6 @@ const Setup: NextPage = () => {
   );
   const [originalNft, setOriginalNft] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState(destNetworks[0].selector as string); // Declare a state variable...
-
-  useEffect(() => {
-    console.log(`registrar`, registrarData);
-  }, [registrarData, isRegistrarLoading]);
 
   if (isConnecting || isDisconnected) {
     return (
@@ -55,8 +50,7 @@ const Setup: NextPage = () => {
     );
   }
 
-  async function onClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    e.preventDefault();
+  async function onClick() {
     let notificationId = notification.loading(<TxnNotification message="Checking the Wrapper" />);
 
     // first checking in the Registrar
@@ -64,12 +58,12 @@ const Setup: NextPage = () => {
     const wrapperAddress = await readContract({
       address: registrarData?.address as string,
       abi: registrarData?.abi as Abi,
-      functionName: "wrappers", // todo change to linkedAddrs
+      functionName: "linkedAddrs",
       args: [originalNft],
     });
     notification.remove(notificationId);
     if (wrapperAddress === "0x0000000000000000000000000000000000000000") {
-      notification.error(<TxnNotification message={`NFT not wrapped. Register the NFT to link`} />);
+      notification.error(<TxnNotification message={`NFT not wrapped. Register first`} />);
       return;
     }
 
@@ -118,8 +112,45 @@ const Setup: NextPage = () => {
       notification.error(<TxnNotification message="The NFT already set up a link to the target blockchain" />);
     }
 
+    // Calculating the fee.
+    let createFee: bigint;
+    notificationId = notification.loading(<TxnNotification message="Calculating the fee" />);
+    try {
+      createFee = (await readContract({
+        address: registrarData?.address as string,
+        abi: registrarData?.abi as Abi,
+        functionName: "calculateCreateLinkedNftFee",
+        args: [originalNft, selectedNetwork],
+      })) as bigint;
+    } catch (e: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={e.toString()} />);
+      return;
+    }
+
+    /*
+    let lintFee: bigint;
+    try {
+      lintFee = (await readContract({
+        address: registrarData?.address as string,
+        abi: registrarData?.abi as Abi,
+        functionName: "calculateLinting",
+        args: [originalNft],
+      })) as bigint;
+    } catch (e: any) {
+      notification.remove(notificationId);
+      notification.error(<TxnNotification message={e.toString()} />);
+      return;
+    }
+    const totalFee = (lintFee + createFee);*/
+    const totalFee = createFee;
+    notification.remove(notificationId);
+
     // make sure it wasn't setup before
-    notificationId = notification.loading(<TxnNotification message="Sign the transaction" />);
+    notification.info(<TxnNotification message={`The fee would cost at least: ${formatEther(totalFee)}`} />);
+    notificationId = notification.loading(
+      <TxnNotification message={`Sign the transaction. It costs ${formatEther(totalFee)}`} />,
+    );
 
     let hash: `0x${string}`;
 
@@ -129,7 +160,7 @@ const Setup: NextPage = () => {
         abi: registrarData?.abi as Abi,
         functionName: "setup",
         args: [originalNft, selectedNetwork],
-        value: parseEther("0.01"),
+        value: totalFee * BigInt(3),
       });
       hash = signedHash;
     } catch (e: any) {
@@ -221,7 +252,7 @@ const Setup: NextPage = () => {
           </label>
           <label className="form-control w-full max-w-xs">
             <div className="label divider">COMPLETE</div>
-            <button className="btn btn-primary" onClick={e => onClick(e)}>
+            <button className="btn btn-primary" onClick={() => onClick()}>
               Setup
             </button>
             <div className="stats">

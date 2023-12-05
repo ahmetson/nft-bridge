@@ -140,6 +140,41 @@ contract Registrar is Ownable {
 		}
 	}
 
+	// Calculate the linked nft fee
+	// Along with `calculateLinting` defines the total sum required for `setup`
+	function calculateCreateLinkedNftFee(address nftAddr, uint64 destSelector) public view returns (uint256) {
+		WrappedNft wrappedNft = WrappedNft(linkedAddrs[nftAddr]);
+		// The created nft will be linked to all previous nfts that we have.
+		(uint64[] memory selectors, address[] memory linkedNftAddrs) = wrappedNft.allNfts();
+
+		// A function of LinkedFactory that we invoke
+		bytes memory data = abi.encodeWithSignature("xSetup(address,string,string,uint64[],address[])",
+			nftAddr, wrappedNft.name(), wrappedNft.symbol(), selectors, linkedNftAddrs);
+
+		Client.EVMExtraArgsV1 memory extra;
+		extra.gasLimit = 4000000;
+		extra.strict = false;
+
+		Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+			receiver: abi.encode(destNetworks[destSelector].factory),
+			data: data,
+			tokenAmounts: new Client.EVMTokenAmount[](0),
+			extraArgs: Client._argsToBytes(extra),
+			feeToken: address(0)
+		});
+
+		return IRouterClient(router).getFee(
+			destSelector,
+			message
+		);
+	}
+
+	// Calculate the linting
+	// Along with `calculateCreateLinkedNftFee` defines the total sum required for `setup`
+	function calculateLinting(address nftAddr) public view returns (uint256) {
+		return WrappedNft(linkedAddrs[nftAddr]).calculateLinting();
+	}
+
 	/// @dev Invokes the factory in the destination chain to create a linked NFT for `nftAddr`.
 	/// @param nftAddr the original NFT address
 	/// @return the native token that user can retrieve back

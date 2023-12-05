@@ -425,6 +425,30 @@ export default [
     type: "function",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "nftId",
+        type: "uint256",
+      },
+      {
+        internalType: "uint64",
+        name: "chainSelector",
+        type: "uint64",
+      },
+    ],
+    name: "calculateBridgeFee",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "calculateLinting",
     outputs: [

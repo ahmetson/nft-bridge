@@ -151,10 +151,32 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
         emit X_Bridge(chainSelector, nftId, msg.sender, messageId);
     }
 
+    // Calculate the required fee
+    function calculateBridgeFee(uint256 nftId, uint64 chainSelector) external view returns(uint256) {
+        // pre-compute the linked address
+        address linkedAddr = linkedNfts[chainSelector];
 
-    // mint and burn are done by the registrar
+        bytes memory data;
+        if (nftSupportedChains[0] == chainSelector) {
+            data = abi.encodeWithSignature("bridge(uint256,address)", nftId, msg.sender);
+        } else {
+            data = abi.encodeWithSignature("bridge(uint256,address,string)", nftId, msg.sender, tokenURI(nftId));
+        }
 
-    // linkNfts is called by factory or by the original selector
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(linkedAddr),
+            data: data,
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: address(0)
+        });
+
+        uint256 fee = IRouterClient(router).getFee(
+            chainSelector,
+            message
+        );
+        return fee;
+    }
 
     function _ccipReceive(
         Client.Any2EVMMessage memory message

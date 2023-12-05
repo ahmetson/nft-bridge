@@ -2,8 +2,9 @@ import { ethers } from "hardhat";
 import { supportedNetworkParams } from "./params";
 
 const calculateAddress = async () => {
+  // 0x5660fc9457358639DAdfD05FEC21070B973d277d
   const WrappedNft = await ethers.getContractFactory("WrappedNft");
-  const wrappedNft = WrappedNft.attach("0xf22ca298eef6f8562a2284d5d2ff2ed8f86f214a");
+  const wrappedNft = WrappedNft.attach("0x60335a6510b8a705531616a7f262cbff404112e7");
 
   const nftId: number = 1;
   const destChainId = "80001";

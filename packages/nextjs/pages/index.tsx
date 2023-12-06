@@ -11,13 +11,12 @@ const Home: NextPage = () => {
         <div className="px-5">
           <h1 className="text-center mb-8">
             <span className="block text-4xl font-bold">NFT Bridge</span>
-            <span className="block text-2xl mb-2">Powered by Chainlink CCIP</span>
+            <span className="block text-2xl mb-2">
+              Powered by <Link href={"https://chain.link/cross-chain"}>Chainlink CCIP</Link>
+            </span>
           </h1>
           <p className="text-center text-lg">
-            An NFT Bridge, secured by decentralized Oracles from a
-            <Link href={"https://chain.link/cross-chain"} className="italic bg-base-300 font-bold max-w-full ml-1">
-              Unicorn
-            </Link>
+            An <strong className="text-bold">NFT Bridge</strong>, that is:
           </p>
           <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
             <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
@@ -40,11 +39,15 @@ const Home: NextPage = () => {
           <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
             <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
               <p>Are you a Project Owner?</p>
-              <button className="btn btn-secondary">Setup</button>
+              <Link href="/register" className="btn btn-secondary">
+                Register
+              </Link>
             </div>
             <div className="flex flex-col px-10 py-10 text-center items-center max-w-xs rounded-3xl">
               <p>Are you an NFT Owner?</p>
-              <button className="btn btn-primary">Primary</button>
+              <Link href="/bridge" className="btn btn-primary">
+                Bridge
+              </Link>
             </div>
           </div>
         </div>

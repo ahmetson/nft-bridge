@@ -112,7 +112,7 @@ const Setup: NextPage = () => {
       notification.error(<TxnNotification message="The NFT already set up a link to the target blockchain" />);
     }
 
-    const res0 = (await readContract({
+    /*const res0 = (await readContract({
       address: wrapperAddress as string,
       abi: WrapperNft as Abi,
       functionName: "nftSupportedChains",
@@ -150,11 +150,10 @@ const Setup: NextPage = () => {
       functionName: "linkedNfts",
       args: [res1],
     })) as string;
-    console.log(`second linked nft`, linked1);
+    console.log(`second linked nft`, linked1);*/
 
     console.log(`Wrapper`, wrapperAddress);
 
-    return;
     // Calculating the fee.
     let createFee: bigint;
     notificationId = notification.loading(<TxnNotification message="Calculating the fee" />);

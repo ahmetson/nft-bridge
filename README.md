@@ -3,7 +3,7 @@
 
 **To start quickly, go to the [Getting Started](#getting-started) section.**
 
-Made for the hackathon for the MVP.
+Made for the hackathon.
 
 Features:
 * :heart_eyes: **Simple**. Whole bridge is 4 smartcontracts only.
@@ -59,17 +59,28 @@ there is needed a minimal setup. Otherwise, no code is needed.*
 # Getting Started
 
 ## 0. Pre-requirements
-Deploy your NFT on the original chain.
+Deploy the original NFT on the desired blockchain.
+The NFT **must** be [Ownable](https://docs.openzeppelin.com/contracts/5.x/access-control#ownership-and-ownable).
 
-***Required** to have the smartcontract that's [Ownable](https://docs.openzeppelin.com/contracts/5.x/access-control#ownership-and-ownable).*
+For example, to test setup process, you can deploy [**PandaNFT**](https://remix.ethereum.org/#version=soljson-v0.8.22+commit.4fc1097e.js&optimize=false&runs=200&gist=7ed7122e4df573ffd050260bd59ad44f&lang=en&evmVersion=null) right in your browser.
 
+If you want to test the bridging, you can use the PandaNFT in *sepolia* testnet.
+The PandaNFT deployed to [0x390ed519f4f786d3000887e2f94dd69f0f2b18c0](https://sepolia.etherscan.io/address/0x390ed519f4f786d3000887e2f94dd69f0f2b18c0).
+On etherscan, simply mint the NFT for yourself.
+
+Then, copy the NFT address and head to [Nft-Bridge.net/approve](https://www.nft-bridge.net/approve).
+Approved? You can bridge the NFT that you minted on etherscan.
+
+
+> **Future work**
+> 
 > [AccessControl](https://docs.openzeppelin.com/contracts/5.x/access-control#role-based-access-control) not supported YET.
 >
 > [AccessManager](https://docs.openzeppelin.com/contracts/5.x/access-control#using_accessmanager) not supported YET.
 >
-> **Contract Creator** not supported yet.
+> **Contract Creator** by deployed transaction not supported yet.
 >
-> Custom owner mechanism not supported yet.
+> **Custom ownership** not supported yet.
 
 ## 1. Register
 > **Only owner of NFT contract allowed.**

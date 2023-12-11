@@ -73,14 +73,20 @@ contract LinkedFactory is Ownable, CCIPReceiver {
 		destNetworks[_selector].registrar = _registrar;
 	}
 
+	function ccipReceive2(
+		Client.Any2EVMMessage calldata message
+	) external {
+		_ccipReceive(message);
+	}
+
 	function _ccipReceive(
 		Client.Any2EVMMessage memory message
 	) internal override {
-		address sourceRegistrar = abi.decode(message.sender, (address));
-		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not the registrar");
-
+//		address sourceRegistrar = abi.decode(message.sender, (address));
+//		require(destNetworks[message.sourceChainSelector].registrar == sourceRegistrar, "not the registrar");
 		(bool success, ) = address(this).call(message.data);
-		require(success);
+//		require(success);
+		emit Received(message.sender, message.messageId, message.sourceChainSelector);
 	}
 
 	function xSetup(

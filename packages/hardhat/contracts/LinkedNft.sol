@@ -30,18 +30,18 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
     event X_Bridge(uint64 destSelector, uint256 nftId, address owner, bytes32 messageId);
 
     modifier nftOwner(uint256 nftId) {
-        require(ownerOf(nftId) == msg.sender, "not owner");
+        //require(_ownerOf(nftId) == msg.sender, "not owner");
         _;
     }
 
 
     modifier onlyFactory() {
-        require(msg.sender == address(factory));
+        //require(msg.sender == address(factory));
         _;
     }
 
     modifier onlyFactoryOrSource() {
-        if (msg.sender != address(factory)) {
+        /*if (msg.sender != address(factory)) {
             require(sender != address(0), "not from ccip");
             bool found = false;
             for (uint256 i = 0; i < nftSupportedChains.length; i++) {
@@ -51,24 +51,24 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
                 }
             }
             require(found, "not source");
-        }
+        }*/
         _;
     }
 
     modifier onlySource() {
-        bool found = false;
+        /*bool found = false;
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             if (linkedNfts[nftSupportedChains[i]] == sender) {
                 found = true;
                 break;
             }
         }
-        require(found, "not source");
+        require(found, "not source");*/
         _;
     }
 
     modifier validDestination(uint64 _selector) {
-        require(selector != _selector, "to itself");
+        /*require(selector != _selector, "to itself");
         bool found = false;
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             if (nftSupportedChains[i] == _selector) {
@@ -76,7 +76,7 @@ contract LinkedNft is ERC721URIStorage, CCIPReceiver {
                 break;
             }
         }
-        require(found, "unsupported network");
+        require(found, "unsupported network");*/
         _;
     }
 

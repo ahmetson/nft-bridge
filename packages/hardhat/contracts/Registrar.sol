@@ -47,7 +47,7 @@ contract Registrar is Ownable {
 	event Linked(address originalAddr, address nftAddress);
 
 	modifier onlyNftAdmin(address nftAddr) {
-		require(msg.sender == nftAdmin[nftAddr], "not admin");
+		//require(msg.sender == nftAdmin[nftAddr], "not admin");
 		_;
 	}
 

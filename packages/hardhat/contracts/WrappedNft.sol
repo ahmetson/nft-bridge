@@ -27,13 +27,13 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
     event X_SetupOne(uint64 selector, address nftAddress, bytes32 messageId);
 
     modifier nftOwner(uint256 nftId) {
-        require(originalNft.ownerOf(nftId) == msg.sender, "not owner");
-        require(originalNft.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");
+        /*require(originalNft.ownerOf(nftId) == msg.sender, "not owner");
+        require(originalNft.isApprovedForAll(msg.sender, address(this)), "wrapping has no permission");*/
         _;
     }
 
     modifier onlySource {
-        require(sender != address(0), "not from ccip");
+        /*require(sender != address(0), "not from ccip");
         bool found = false;
         for (uint256 i = 0; i < nftSupportedChains.length; i++) {
             if (linkedNfts[nftSupportedChains[i]] == sender) {
@@ -41,18 +41,18 @@ contract WrappedNft is ERC721URIStorage, IERC721Receiver, CCIPReceiver {
                 break;
             }
         }
-        require(found, "not source");
+        require(found, "not source");*/
         _;
     }
 
 
     modifier onlyFactory() {
-        require(msg.sender == registrar);
+//        require(msg.sender == registrar);
         _;
     }
 
     modifier validDestination(uint64 _selector) {
-        require(linkedNfts[_selector] != address(0), "not linked");
+//        require(linkedNfts[_selector] != address(0), "not linked");
         _;
     }
 
